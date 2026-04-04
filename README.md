@@ -43,6 +43,9 @@ curl -fsSL https://clawspark.hitechclaw.com/install.sh | bash
 
 That's it. Come back in 5 minutes to a fully working, fully private AI agent that can code, research, browse the web, analyze images, and manage your tasks. Everything runs on your hardware. No cloud APIs, no subscriptions, no telemetry.
 
+During installation you can now optionally enter a public domain to enable **Caddy** with automatic HTTPS.
+If you leave the domain blank, Caddy is not installed.
+
 > **Licensing notice**
 > Publishing or downloading this package from npm does not grant any commercial right.
 > Use is limited to strictly non-commercial purposes unless separately authorized in writing by the copyright holder.
@@ -151,6 +154,18 @@ Zero interaction mode:
 ```bash
 curl -fsSL https://clawspark.hitechclaw.com/install.sh | bash -s -- --defaults
 ```
+
+Optional public HTTPS with Caddy:
+
+```bash
+curl -fsSL https://clawspark.hitechclaw.com/install.sh | bash -s -- --domain=agent.example.com
+curl -fsSL https://clawspark.hitechclaw.com/install.sh | bash -s -- --domain=agent.example.com --dashboard-domain=metrics.example.com
+```
+
+- `--domain` publishes the Chat UI and gateway through Caddy with automatic HTTPS
+- `--dashboard-domain` optionally exposes ClawMetry on a separate domain
+- if no domain is provided, Caddy is skipped entirely
+- DNS for the chosen domain must already point at the machine, and ports `80` and `443` must be reachable
 
 ## What Your Agent Can Do
 
@@ -264,6 +279,12 @@ Two web interfaces out of the box:
 - **Metrics**: `http://localhost:8900` (ClawMetry)
 
 Both bind to localhost. Use Tailscale for remote access.
+
+If you provide a domain during install, `clawspark` can also configure **Caddy**:
+
+- Chat UI / API via `https://<your-domain>/__openclaw__/canvas/`
+- Dashboard via `https://<your-domain>/metrics/`
+- or a separate dashboard domain with `--dashboard-domain`
 
 ## Docker Sandbox
 

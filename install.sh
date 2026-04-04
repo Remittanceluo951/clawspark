@@ -52,6 +52,8 @@ AIR_GAP="false"
 FLAG_MODEL=""
 FLAG_MESSAGING=""
 DEPLOY_MODE=""
+FLAG_DOMAIN=""
+FLAG_DASHBOARD_DOMAIN=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -67,6 +69,12 @@ while [[ $# -gt 0 ]]; do
         --messaging=*)
             FLAG_MESSAGING="${1#*=}"
             shift ;;
+        --domain=*)
+            FLAG_DOMAIN="${1#*=}"
+            shift ;;
+        --dashboard-domain=*)
+            FLAG_DASHBOARD_DOMAIN="${1#*=}"
+            shift ;;
         -h|--help)
             cat <<HELP
 Usage: install.sh [OPTIONS]
@@ -76,6 +84,9 @@ Options:
   --air-gap            Enable air-gap mode after setup
   --model=<id>         Ollama model ID to use (e.g. qwen3.5:35b-a3b)
   --messaging=<type>   whatsapp | telegram | both | skip
+  --domain=<name>      Optional public domain for Caddy reverse proxy
+  --dashboard-domain=<name>
+                       Optional separate domain for ClawMetry dashboard
   -h, --help           Show this help
 HELP
             exit 0 ;;
@@ -86,6 +97,7 @@ HELP
 done
 
 export CLAWSPARK_DEFAULTS AIR_GAP FLAG_MODEL FLAG_MESSAGING DEPLOY_MODE
+export FLAG_DOMAIN FLAG_DASHBOARD_DOMAIN
 
 # ── Require bash 4.2+ (macOS ships 3.2 which lacks nameref, ${var,,}, etc.) ─
 if [[ "${BASH_VERSINFO[0]}" -lt 4 ]] || { [[ "${BASH_VERSINFO[0]}" -eq 4 ]] && [[ "${BASH_VERSINFO[1]}" -lt 2 ]]; }; then
@@ -134,6 +146,7 @@ _source_lib() {
         setup-voice.sh \
         setup-tailscale.sh \
         setup-dashboard.sh \
+        setup-caddy.sh \
         setup-models.sh \
         setup-mcp.sh \
         setup-browser.sh \
@@ -308,28 +321,35 @@ setup_tailscale
 log_info "Step 12/19: Setting up dashboard"
 setup_dashboard || log_warn "Dashboard setup had issues -- continuing with install."
 
-# ── Step 13: Vision & multi-model ──────────────────────────────────────────
-log_info "Step 13/19: Configuring vision and multi-model support"
+# ── Step 13: Optional Caddy reverse proxy ──────────────────────────────────
+log_info "Step 13/20: Optional public domain via Caddy"
+CADDY_DOMAIN="${FLAG_DOMAIN}"
+CADDY_DASHBOARD_DOMAIN="${FLAG_DASHBOARD_DOMAIN}"
+export CADDY_DOMAIN CADDY_DASHBOARD_DOMAIN
+setup_caddy || log_warn "Caddy setup had issues -- continuing with install."
+
+# ── Step 14: Vision & multi-model ──────────────────────────────────────────
+log_info "Step 14/20: Configuring vision and multi-model support"
 setup_models || log_warn "Model configuration had issues -- continuing."
 
-# ── Step 14: MCP servers (diagrams, memory, reasoning) ───────────────────
-log_info "Step 14/19: Setting up MCP servers"
+# ── Step 15: MCP servers (diagrams, memory, reasoning) ───────────────────
+log_info "Step 15/20: Setting up MCP servers"
 setup_mcp || log_warn "MCP setup had issues -- continuing."
 
-# ── Step 15: Browser automation ────────────────────────────────────────────
-log_info "Step 15/19: Setting up browser automation"
+# ── Step 16: Browser automation ────────────────────────────────────────────
+log_info "Step 16/20: Setting up browser automation"
 setup_browser || log_warn "Browser setup had issues -- continuing."
 
-# ── Step 16: Docker sandbox ────────────────────────────────────────────────
-log_info "Step 16/19: Setting up Docker sandbox"
+# ── Step 17: Docker sandbox ────────────────────────────────────────────────
+log_info "Step 17/20: Setting up Docker sandbox"
 setup_sandbox || log_warn "Sandbox setup had issues -- continuing."
 
-# ── Step 17: Systemd services ──────────────────────────────────────────────
-log_info "Step 17/19: Creating systemd services for auto-start on boot"
+# ── Step 18: Systemd services ──────────────────────────────────────────────
+log_info "Step 18/20: Creating systemd services for auto-start on boot"
 setup_systemd_services || log_warn "Systemd setup had issues -- services will use PID management."
 
-# ── Step 18: Security ──────────────────────────────────────────────────────
-log_info "Step 18/19: Applying security"
+# ── Step 19: Security ──────────────────────────────────────────────────────
+log_info "Step 19/20: Applying security"
 secure_setup
 
 # ── Start node host (after all config changes are done) ───────────────────
@@ -341,8 +361,8 @@ else
     _start_node_host || log_warn "Node host failed to start -- you can start it with: clawspark start"
 fi
 
-# ── Step 18: Verification ──────────────────────────────────────────────────
-log_info "Step 19/19: Verifying installation"
+# ── Step 20: Verification ──────────────────────────────────────────────────
+log_info "Step 20/20: Verifying installation"
 verify_installation
 
 # ── Final CLI refresh (picks up any changes made during install) ──────────
@@ -369,6 +389,12 @@ printf '%s\n' "${RESET}"
 _final_urls=()
 _final_urls+=("Chat UI: http://localhost:18789/__openclaw__/canvas/")
 _final_urls+=("Dashboard: http://localhost:8900")
+if [[ -f "${CLAWSPARK_DIR}/caddy-chat.url" ]]; then
+    _final_urls+=("Public Chat UI: $(cat "${CLAWSPARK_DIR}/caddy-chat.url")")
+fi
+if [[ -f "${CLAWSPARK_DIR}/caddy-dashboard.url" ]]; then
+    _final_urls+=("Public Dashboard: $(cat "${CLAWSPARK_DIR}/caddy-dashboard.url")")
+fi
 if [[ -f "${CLAWSPARK_DIR}/tailscale.url" ]]; then
     _final_urls+=("Tailscale: $(cat "${CLAWSPARK_DIR}/tailscale.url")")
 fi

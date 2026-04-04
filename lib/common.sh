@@ -138,6 +138,29 @@ prompt_yn() {
     [[ "${answer}" =~ ^y(es)?$ ]] && return 0 || return 1
 }
 
+prompt_input() {
+    local question="$1"
+    local default_value="${2:-}"
+
+    if [[ "${CLAWSPARK_DEFAULTS}" == "true" ]]; then
+        printf '%s' "${default_value}"
+        return 0
+    fi
+
+    if [[ -n "${default_value}" ]]; then
+        printf '\n%s%s%s [%s]: ' "${BOLD}" "${question}" "${RESET}" "${default_value}" >/dev/tty
+    else
+        printf '\n%s%s%s: ' "${BOLD}" "${question}" "${RESET}" >/dev/tty
+    fi
+
+    local value
+    read -r value </dev/tty || value=""
+    if [[ -z "${value}" ]]; then
+        value="${default_value}"
+    fi
+    printf '%s' "${value}"
+}
+
 # ── check_command ───────────────────────────────────────────────────────────
 # Returns 0 if the command exists on PATH, 1 otherwise.
 check_command() {
