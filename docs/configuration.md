@@ -249,4 +249,23 @@ Internally, OpenClaw model refs for `custom`, `openrouter`, and `google` are sto
 
 For API-backed profiles, `clawspark status` performs a lightweight connectivity probe against the configured base URL. Set `CLAWSPARK_SKIP_REMOTE_HEALTHCHECK=true` if you need to suppress that check in restricted environments or tests.
 
+After install, you can review or update provider settings from the CLI:
+
+```bash
+clawspark provider
+clawspark provider list
+clawspark provider use openrouter
+clawspark provider use ollama
+clawspark provider set openai --base-url=https://api.openai.com/v1 --api-key=<your-key>
+clawspark provider set anthropic --base-url=https://api.anthropic.com --api-key=<your-key>
+clawspark provider set openrouter --base-url=https://openrouter.ai/api/v1 --api-key=<your-key>
+clawspark provider set google --base-url=https://generativelanguage.googleapis.com/v1beta/openai --api-key=<your-key>
+clawspark provider set custom --name="My Gateway" --base-url=https://llm.example.com/v1 --api-key=<your-key>
+```
+
+`clawspark provider list` shows the built-in provider catalog, runtime compatibility, and default base URLs.
+`clawspark provider use <provider>` switches to a provider using its built-in default base URL. For remote APIs, add `--api-key` now or export the matching key later in `~/.openclaw/gateway.env`.
+
+`clawspark provider set-custom ...` remains available as a shortcut for the custom-provider flow.
+
 Naming note: the framework used by clawspark is **OpenClaw**. `Nemotron` is only one possible model family, not the platform name.

@@ -92,15 +92,9 @@ print(cfg.get('clawsparkV2', {}).get('customProviderName', ''))
 }
 
 _current_provider_base_url() {
-    case "$(_current_provider)" in
-        ollama) printf '%s' "${OLLAMA_BASE_URL:-}" ;;
-        openai) printf '%s' "${OPENAI_BASE_URL:-}" ;;
-        anthropic) printf '%s' "${ANTHROPIC_BASE_URL:-}" ;;
-        openrouter) printf '%s' "${OPENROUTER_BASE_URL:-}" ;;
-        google) printf '%s' "${GOOGLE_BASE_URL:-}" ;;
-        custom) printf '%s' "${CUSTOM_AI_BASE_URL:-}" ;;
-        *) return 1 ;;
-    esac
+    local env_name
+    env_name="$(_provider_base_url_env_name "$(_current_provider)")" || return 1
+    printf '%s' "${!env_name:-}"
 }
 
 _probe_remote_endpoint_status() {
@@ -147,6 +141,66 @@ _current_provider_display() {
     printf '%s' "${provider}"
 }
 
+_provider_api_key_env_name() {
+    local provider="${1:-$(_current_provider)}"
+    case "${provider}" in
+        openai) printf 'OPENAI_API_KEY' ;;
+        anthropic) printf 'ANTHROPIC_API_KEY' ;;
+        openrouter) printf 'OPENROUTER_API_KEY' ;;
+        google) printf 'GOOGLE_API_KEY' ;;
+        custom) printf 'CUSTOM_AI_API_KEY' ;;
+        ollama) printf 'OLLAMA_API_KEY' ;;
+        *) return 1 ;;
+    esac
+}
+
+_provider_base_url_env_name() {
+    local provider="$1"
+    case "${provider}" in
+        ollama) printf 'OLLAMA_BASE_URL' ;;
+        openai) printf 'OPENAI_BASE_URL' ;;
+        anthropic) printf 'ANTHROPIC_BASE_URL' ;;
+        openrouter) printf 'OPENROUTER_BASE_URL' ;;
+        google) printf 'GOOGLE_BASE_URL' ;;
+        custom) printf 'CUSTOM_AI_BASE_URL' ;;
+        *) return 1 ;;
+    esac
+}
+
+_provider_display() {
+    local provider="$1"
+    local custom_label="${2:-}"
+
+    if [[ "${provider}" == "custom" && -n "${custom_label}" ]]; then
+        printf 'custom (%s)' "${custom_label}"
+        return 0
+    fi
+
+    printf '%s' "${provider}"
+}
+
+_provider_catalog_rows() {
+    cat <<'EOF'
+ollama|local|local-gpu,local-cpu,hybrid|http://127.0.0.1:11434/v1|Local Ollama runtime
+openai|api|api-only,hybrid|https://api.openai.com/v1|OpenAI hosted API
+anthropic|api|api-only,hybrid|https://api.anthropic.com|Anthropic hosted API
+openrouter|api|api-only,hybrid|https://openrouter.ai/api/v1|OpenRouter aggregator
+google|api|api-only,hybrid|https://generativelanguage.googleapis.com/v1beta/openai|Google OpenAI-compatible endpoint
+custom|api|api-only,hybrid|https://your-provider.example.com/v1|OpenAI-compatible custom endpoint
+EOF
+}
+
+_provider_default_base_url() {
+    local provider="$1"
+    while IFS='|' read -r row_provider _row_type _row_modes row_base_url _row_notes; do
+        if [[ "${row_provider}" == "${provider}" ]]; then
+            printf '%s' "${row_base_url}"
+            return 0
+        fi
+    done < <(_provider_catalog_rows)
+    return 1
+}
+
 _current_provider() {
     if [[ -n "${CLAWSPARK_V2_PRIMARY_PROVIDER:-}" ]]; then
         printf '%s' "${CLAWSPARK_V2_PRIMARY_PROVIDER}"
@@ -189,6 +243,377 @@ _normalize_model_ref() {
         custom) printf 'openai/%s' "${model}" ;;
         anthropic) printf 'anthropic/%s' "${model}" ;;
         *) printf 'ollama/%s' "${model}" ;;
+    esac
+}
+
+_gateway_env_file() {
+    printf '%s' "${HOME}/.openclaw/gateway.env"
+}
+
+_ensure_openclaw_dir() {
+    mkdir -p "${HOME}/.openclaw"
+}
+
+_upsert_gateway_env_var() {
+    local key="$1"
+    local value="$2"
+    local env_file
+    env_file="$(_gateway_env_file)"
+
+    _ensure_openclaw_dir
+    touch "${env_file}"
+
+    python3 -c '
+import pathlib, sys
+
+path = pathlib.Path(sys.argv[1])
+key = sys.argv[2]
+value = sys.argv[3]
+line = f"{key}={value}"
+
+lines = []
+found = False
+if path.exists():
+    lines = path.read_text(encoding="utf-8").splitlines()
+
+updated = []
+for existing in lines:
+    if existing.startswith(f"{key}="):
+        if not found:
+            updated.append(line)
+            found = True
+    else:
+        updated.append(existing)
+
+if not found:
+    updated.append(line)
+
+path.write_text("\n".join(updated) + "\n", encoding="utf-8")
+' "${env_file}" "${key}" "${value}" 2>> "${CLAWSPARK_LOG}" || {
+        log_error "Failed to update ${key} in ${env_file}."
+        exit 1
+    }
+
+    chmod 600 "${env_file}" 2>/dev/null || true
+    export "${key}=${value}"
+}
+
+_update_v2_provider_metadata() {
+    local provider="$1"
+    local custom_name="${2:-}"
+    local config_file="${HOME}/.openclaw/openclaw.json"
+
+    if [[ ! -f "${config_file}" ]]; then
+        log_error "Config not found at ${config_file}. Run install.sh first."
+        exit 1
+    fi
+
+    python3 -c '
+import json, sys
+
+path = sys.argv[1]
+provider = sys.argv[2]
+custom_name = sys.argv[3]
+
+with open(path, "r", encoding="utf-8") as fh:
+    cfg = json.load(fh)
+
+v2 = cfg.setdefault("clawsparkV2", {})
+v2["primaryProvider"] = provider
+if custom_name:
+    v2["customProviderName"] = custom_name
+elif provider != "custom":
+    v2.pop("customProviderName", None)
+
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(cfg, fh, indent=2)
+' "${config_file}" "${provider}" "${custom_name}" 2>> "${CLAWSPARK_LOG}" || {
+        log_error "Failed to update provider metadata in ${config_file}."
+        exit 1
+    }
+}
+
+_cmd_provider_show() {
+    local provider_display provider base_url api_key_env
+    provider_display="$(_current_provider_display)"
+    provider="$(_current_provider)"
+    base_url="$(_current_provider_base_url 2>/dev/null || true)"
+    api_key_env="$(_provider_api_key_env_name "${provider}" 2>/dev/null || true)"
+
+    printf '\n%s%s clawspark provider%s\n\n' "${BOLD}" "${BLUE}" "${RESET}"
+    printf '  %-22s %s\n' "Profile" "${CLAWSPARK_PROFILE_NAME}"
+    printf '  %-22s %s\n' "Provider" "${provider_display}"
+
+    if [[ -n "${base_url}" ]]; then
+        printf '  %-22s %s\n' "Base URL" "${base_url}"
+    else
+        printf '  %-22s %s\n' "Base URL" "(not configured)"
+    fi
+
+    if [[ -n "${api_key_env}" ]]; then
+        if [[ -n "${!api_key_env:-}" ]]; then
+            printf '  %-22s %s\n' "API key" "configured via ${api_key_env}"
+        else
+            printf '  %-22s %s\n' "API key" "missing (${api_key_env})"
+        fi
+    fi
+
+    if [[ "${provider}" == "custom" ]]; then
+        printf '\n  Update custom provider:\n'
+        printf '    clawspark provider set custom --name <label> --base-url <url> [--api-key <key>]\n'
+    elif [[ "${provider}" != "ollama" ]]; then
+        printf '\n  Update remote provider:\n'
+        printf '    clawspark provider set %s --base-url <url> [--api-key <key>]\n' "${provider}"
+    fi
+    printf '\n'
+}
+
+_cmd_provider_list() {
+    local current_provider current_base_url
+    current_provider="$(_current_provider)"
+    current_base_url="$(_current_provider_base_url 2>/dev/null || true)"
+
+    printf '\n%s%s clawspark provider catalog%s\n\n' "${BOLD}" "${BLUE}" "${RESET}"
+    printf '  %-10s %-8s %-23s %-58s %s\n' "Provider" "Type" "Runtime Modes" "Default Base URL" "Notes"
+    printf '  %-10s %-8s %-23s %-58s %s\n' "--------" "----" "-------------" "----------------" "-----"
+
+    while IFS='|' read -r provider provider_type runtime_modes default_base_url notes; do
+        local marker=" "
+        if [[ "${provider}" == "${current_provider}" ]]; then
+            marker="*"
+        fi
+        printf '%s %-10s %-8s %-23s %-58s %s\n' "${marker}" "${provider}" "${provider_type}" "${runtime_modes}" "${default_base_url}" "${notes}"
+    done < <(_provider_catalog_rows)
+
+    if [[ -n "${current_base_url}" ]]; then
+        printf '\n  Active provider URL: %s\n' "${current_base_url}"
+    fi
+    printf '  Use %sclawspark provider set <provider> ...%s to switch providers.\n\n' "${CYAN}" "${RESET}"
+}
+
+_cmd_provider_set_remote() {
+    local provider="$1"
+    shift || true
+
+    local base_url=""
+    local api_key=""
+    local provider_name=""
+    local api_key_env=""
+    local base_url_env=""
+
+    case "${provider}" in
+        ollama|openai|anthropic|openrouter|google|custom)
+            ;;
+        *)
+            log_error "Unsupported remote provider: ${provider}"
+            printf '  Usage: clawspark provider set <ollama|openai|anthropic|openrouter|google|custom> [options]\n'
+            exit 1
+            ;;
+    esac
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --name)
+                provider_name="${2:-}"
+                shift 2
+                ;;
+            --base-url)
+                base_url="${2:-}"
+                shift 2
+                ;;
+            --api-key)
+                api_key="${2:-}"
+                shift 2
+                ;;
+            *)
+                log_error "Unknown provider option: $1"
+                if [[ "${provider}" == "custom" ]]; then
+                    printf '  Usage: clawspark provider set custom --name <label> --base-url <url> [--api-key <key>]\n'
+                elif [[ "${provider}" == "ollama" ]]; then
+                    printf '  Usage: clawspark provider set ollama [--base-url <url>]\n'
+                else
+                    printf '  Usage: clawspark provider set %s --base-url <url> [--api-key <key>]\n' "${provider}"
+                fi
+                exit 1
+                ;;
+        esac
+    done
+
+    [[ -z "${base_url}" ]] && {
+        if [[ "${provider}" == "custom" ]]; then
+            log_error "Usage: clawspark provider set custom --name <label> --base-url <url> [--api-key <key>]"
+        elif [[ "${provider}" == "ollama" ]]; then
+            log_error "Usage: clawspark provider set ollama [--base-url <url>]"
+        else
+            log_error "Usage: clawspark provider set ${provider} --base-url <url> [--api-key <key>]"
+        fi
+        exit 1
+    }
+
+    if [[ ! "${base_url}" =~ ^https?:// ]]; then
+        log_error "Provider base URL must start with http:// or https://"
+        exit 1
+    fi
+
+    if [[ "${provider}" == "custom" && -z "${provider_name}" ]]; then
+        log_error "Usage: clawspark provider set custom --name <label> --base-url <url> [--api-key <key>]"
+        exit 1
+    fi
+
+    base_url_env="$(_provider_base_url_env_name "${provider}")"
+    api_key_env="$(_provider_api_key_env_name "${provider}")"
+
+    _upsert_gateway_env_var "CLAWSPARK_V2_PRIMARY_PROVIDER" "${provider}"
+    _upsert_gateway_env_var "${base_url_env}" "${base_url}"
+    if [[ -n "${api_key}" ]]; then
+        _upsert_gateway_env_var "${api_key_env}" "${api_key}"
+    fi
+
+    if [[ "${provider}" == "custom" ]]; then
+        _upsert_gateway_env_var "CUSTOM_AI_PROVIDER_NAME" "${provider_name}"
+        _update_v2_provider_metadata "custom" "${provider_name}"
+    else
+        _update_v2_provider_metadata "${provider}"
+    fi
+
+    CLAWSPARK_PROFILE_NAME="v2"
+
+    if [[ "${provider}" == "custom" && "${CLAWSPARK_PROVIDER_SET_ALIAS:-}" == "set-custom" ]]; then
+        log_success "Custom provider updated: ${provider_name}"
+    else
+        log_success "Provider updated: $(_provider_display "${provider}" "${provider_name}")"
+    fi
+    log_info "Provider base URL: ${base_url}"
+    if [[ -n "${api_key}" ]]; then
+        log_info "API key saved to ${api_key_env}"
+    fi
+    log_info "Restart to apply: clawspark restart"
+}
+
+_cmd_provider_use() {
+    local provider="${1:-}"
+    shift || true
+
+    [[ -z "${provider}" ]] && {
+        log_error "Usage: clawspark provider use <ollama|openai|anthropic|openrouter|google|custom> [options]"
+        exit 1
+    }
+
+    local base_url=""
+    local api_key=""
+    local provider_name=""
+    local set_args=()
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --base-url)
+                base_url="${2:-}"
+                shift 2
+                ;;
+            --api-key)
+                api_key="${2:-}"
+                shift 2
+                ;;
+            --name)
+                provider_name="${2:-}"
+                shift 2
+                ;;
+            *)
+                log_error "Unknown provider option: $1"
+                printf '  Usage: clawspark provider use <ollama|openai|anthropic|openrouter|google|custom> [--base-url <url>] [--api-key <key>] [--name <label>]\n'
+                exit 1
+                ;;
+        esac
+    done
+
+    case "${provider}" in
+        ollama|openai|anthropic|openrouter|google|custom)
+            ;;
+        *)
+            log_error "Unsupported provider: ${provider}"
+            exit 1
+            ;;
+    esac
+
+    if [[ -z "${base_url}" ]]; then
+        if [[ "${provider}" == "custom" ]]; then
+            log_error "Custom provider requires --base-url and --name with clawspark provider use custom"
+            exit 1
+        fi
+        base_url="$(_provider_default_base_url "${provider}" 2>/dev/null || true)"
+    fi
+
+    if [[ -z "${base_url}" ]]; then
+        log_error "No default base URL is available for provider: ${provider}"
+        exit 1
+    fi
+
+    if [[ "${provider}" == "custom" && -z "${provider_name}" ]]; then
+        log_error "Custom provider requires --name with clawspark provider use custom"
+        exit 1
+    fi
+
+    if [[ "${provider}" == "ollama" && -z "${api_key}" && -z "${OLLAMA_API_KEY:-}" ]]; then
+        api_key="ollama"
+    fi
+
+    set_args=(--base-url "${base_url}")
+    if [[ -n "${api_key}" ]]; then
+        set_args+=(--api-key "${api_key}")
+    fi
+    if [[ -n "${provider_name}" ]]; then
+        set_args+=(--name "${provider_name}")
+    fi
+
+    _cmd_provider_set_remote "${provider}" "${set_args[@]}"
+
+    if [[ -n "${api_key}" ]]; then
+        :
+    else
+        local api_key_env
+        api_key_env="$(_provider_api_key_env_name "${provider}" 2>/dev/null || true)"
+        if [[ -n "${api_key_env}" && -z "${!api_key_env:-}" && "${provider}" != "ollama" ]]; then
+            log_warn "No API key was provided. Set ${api_key_env} before using remote inference."
+        fi
+    fi
+}
+
+_cmd_provider_set_custom() {
+    local CLAWSPARK_PROVIDER_SET_ALIAS="set-custom"
+    _cmd_provider_set_remote custom "$@"
+}
+
+_cmd_provider() {
+    local subcmd="${1:-show}"
+    shift || true
+
+    case "${subcmd}" in
+        list)
+            _cmd_provider_list
+            ;;
+        show)
+            _cmd_provider_show
+            ;;
+        set)
+            local provider_name="${1:-}"
+            [[ -z "${provider_name}" ]] && {
+                log_error "Usage: clawspark provider set <ollama|openai|anthropic|openrouter|google|custom> [options]"
+                exit 1
+            }
+            shift || true
+            _cmd_provider_set_remote "${provider_name}" "$@"
+            ;;
+        use)
+            _cmd_provider_use "$@"
+            ;;
+        set-custom)
+            _cmd_provider_set_custom "$@"
+            ;;
+        *)
+            log_error "Unknown provider subcommand: ${subcmd}"
+            printf '  Usage: clawspark provider [show|list|set <provider> [options]|use <provider> [options]|set-custom --name <label> --base-url <url> [--api-key <key>]]\n'
+            exit 1
+            ;;
     esac
 }
 
@@ -253,6 +678,11 @@ ${BOLD}Commands:${RESET}
   ${GREEN}model list${RESET}           Show available and active models
   ${GREEN}model switch <model>${RESET} Change the primary chat model
   ${GREEN}model vision${RESET}         Set or show the vision model
+    ${GREEN}provider${RESET}            Show current provider configuration
+    ${GREEN}provider list${RESET}       Show supported provider catalog
+    ${GREEN}provider set <p> ...${RESET} Update remote provider settings
+    ${GREEN}provider use <p>${RESET}    Switch provider using default endpoints
+    ${GREEN}provider set-custom ...${RESET} Update custom provider settings
   ${GREEN}tools${RESET}               List agent tools and their status
   ${GREEN}tools enable <name>${RESET}  Enable an additional tool (e.g. email, browser)
   ${GREEN}tools disable <name>${RESET} Disable a tool for the personal agent
@@ -1952,6 +2382,7 @@ case "${cmd}" in
     tools)      _cmd_tools "$@" ;;
     mcp)        _cmd_mcp "$@" ;;
     model)      _cmd_model "$@" ;;
+    provider)   _cmd_provider "$@" ;;
     benchmark)  _cmd_benchmark ;;
     update)     _cmd_update ;;
     dashboard)  _cmd_dashboard ;;

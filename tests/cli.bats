@@ -179,3 +179,185 @@ JSON
         [[ "$output" == *"custom (My Gateway)"* ]]
         [[ "$output" == *"https://llm.example.com/v1"* ]]
 }
+
+@test "provider show reports current custom provider configuration" {
+        mkdir -p "${HOME}/.openclaw"
+
+        cat > "${HOME}/.openclaw/gateway.env" <<'ENV'
+CLAWSPARK_V2_RUNTIME_MODE=api-only
+CLAWSPARK_V2_PRIMARY_PROVIDER=custom
+CUSTOM_AI_PROVIDER_NAME=My Gateway
+CUSTOM_AI_BASE_URL=https://llm.example.com/v1
+CUSTOM_AI_API_KEY=secret-token
+ENV
+
+        cat > "${HOME}/.openclaw/openclaw.json" <<'JSON'
+{
+    "agents": {
+        "defaults": {
+            "model": "openai/my-model"
+        }
+    },
+    "clawsparkV2": {
+        "primaryProvider": "custom",
+        "customProviderName": "My Gateway"
+    }
+}
+JSON
+
+        run bash -c "export HOME='${TEST_TEMP_DIR}'; bash '${CLAWSPARK_BIN}' provider"
+        [ "$status" -eq 0 ]
+        [[ "$output" == *"Provider"* ]]
+        [[ "$output" == *"custom (My Gateway)"* ]]
+        [[ "$output" == *"https://llm.example.com/v1"* ]]
+        [[ "$output" == *"configured via CUSTOM_AI_API_KEY"* ]]
+}
+
+@test "provider list shows catalog and active provider marker" {
+        mkdir -p "${HOME}/.openclaw"
+
+        cat > "${HOME}/.openclaw/gateway.env" <<'ENV'
+CLAWSPARK_V2_RUNTIME_MODE=api-only
+CLAWSPARK_V2_PRIMARY_PROVIDER=openai
+OPENAI_BASE_URL=https://api.openai.com/v1
+ENV
+
+        run bash -c "export HOME='${TEST_TEMP_DIR}'; bash '${CLAWSPARK_BIN}' provider list"
+        [ "$status" -eq 0 ]
+        [[ "$output" == *"provider catalog"* ]]
+        [[ "$output" == *"* openai"* ]]
+        [[ "$output" == *"custom"* ]]
+        [[ "$output" == *"https://api.openai.com/v1"* ]]
+        [[ "$output" == *"https://your-provider.example.com/v1"* ]]
+}
+
+@test "provider set-custom updates gateway env and openclaw config" {
+        mkdir -p "${HOME}/.openclaw"
+
+        cat > "${HOME}/.openclaw/gateway.env" <<'ENV'
+CLAWSPARK_V2_RUNTIME_MODE=api-only
+CLAWSPARK_V2_PRIMARY_PROVIDER=openai
+OPENAI_BASE_URL=https://api.openai.com/v1
+ENV
+
+        cat > "${HOME}/.openclaw/openclaw.json" <<'JSON'
+{
+    "agents": {
+        "defaults": {
+            "model": "openai/gpt-4.1-mini"
+        }
+    },
+    "clawsparkV2": {
+        "primaryProvider": "openai"
+    }
+}
+JSON
+
+        run bash -c "export HOME='${TEST_TEMP_DIR}'; bash '${CLAWSPARK_BIN}' provider set-custom --name 'Acme AI' --base-url 'https://api.acme.ai/v1' --api-key 'abc123'"
+        [ "$status" -eq 0 ]
+        [[ "$output" == *"Custom provider updated: Acme AI"* ]]
+
+        run bash -c "grep -q '^CLAWSPARK_V2_PRIMARY_PROVIDER=custom$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+        run bash -c "grep -q '^CUSTOM_AI_PROVIDER_NAME=Acme AI$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+        run bash -c "grep -q '^CUSTOM_AI_BASE_URL=https://api.acme.ai/v1$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+        run bash -c "grep -q '^CUSTOM_AI_API_KEY=abc123$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+        run bash -c "python3 -c \"import json; cfg=json.load(open('${HOME}/.openclaw/openclaw.json', 'r', encoding='utf-8')); assert cfg['clawsparkV2']['primaryProvider'] == 'custom'; assert cfg['clawsparkV2']['customProviderName'] == 'Acme AI'\""
+        [ "$status" -eq 0 ]
+}
+
+@test "provider set openai updates gateway env and provider metadata" {
+        mkdir -p "${HOME}/.openclaw"
+
+        cat > "${HOME}/.openclaw/gateway.env" <<'ENV'
+CLAWSPARK_V2_RUNTIME_MODE=api-only
+CLAWSPARK_V2_PRIMARY_PROVIDER=custom
+CUSTOM_AI_PROVIDER_NAME=Legacy Gateway
+CUSTOM_AI_BASE_URL=https://legacy.example.com/v1
+ENV
+
+        cat > "${HOME}/.openclaw/openclaw.json" <<'JSON'
+{
+    "agents": {
+        "defaults": {
+            "model": "openai/gpt-4.1-mini"
+        }
+    },
+    "clawsparkV2": {
+        "primaryProvider": "custom",
+        "customProviderName": "Legacy Gateway"
+    }
+}
+JSON
+
+        run bash -c "export HOME='${TEST_TEMP_DIR}'; bash '${CLAWSPARK_BIN}' provider set openai --base-url 'https://api.openai.com/v1' --api-key 'sk-openai'"
+        [ "$status" -eq 0 ]
+        [[ "$output" == *"Provider updated: openai"* ]]
+
+        run bash -c "grep -q '^CLAWSPARK_V2_PRIMARY_PROVIDER=openai$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+        run bash -c "grep -q '^OPENAI_BASE_URL=https://api.openai.com/v1$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+        run bash -c "grep -q '^OPENAI_API_KEY=sk-openai$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+        run bash -c "python3 -c \"import json; cfg=json.load(open('${HOME}/.openclaw/openclaw.json', 'r', encoding='utf-8')); assert cfg['clawsparkV2']['primaryProvider'] == 'openai'; assert 'customProviderName' not in cfg['clawsparkV2']\""
+        [ "$status" -eq 0 ]
+}
+
+@test "provider use openrouter applies default base url" {
+        mkdir -p "${HOME}/.openclaw"
+
+        cat > "${HOME}/.openclaw/openclaw.json" <<'JSON'
+{
+    "agents": {
+        "defaults": {
+            "model": "openai/gpt-4.1-mini"
+        }
+    },
+    "clawsparkV2": {
+        "primaryProvider": "openai"
+    }
+}
+JSON
+
+        run bash -c "export HOME='${TEST_TEMP_DIR}'; bash '${CLAWSPARK_BIN}' provider use openrouter"
+        [ "$status" -eq 0 ]
+        [[ "$output" == *"Provider updated: openrouter"* ]]
+        [[ "$output" == *"No API key was provided"* ]]
+
+        run bash -c "grep -q '^CLAWSPARK_V2_PRIMARY_PROVIDER=openrouter$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+        run bash -c "grep -q '^OPENROUTER_BASE_URL=https://openrouter.ai/api/v1$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+}
+
+@test "provider use ollama applies local default base url" {
+        mkdir -p "${HOME}/.openclaw"
+
+        cat > "${HOME}/.openclaw/openclaw.json" <<'JSON'
+{
+    "agents": {
+        "defaults": {
+            "model": "ollama/qwen2.5:7b"
+        }
+    },
+    "clawsparkV2": {
+        "primaryProvider": "openai"
+    }
+}
+JSON
+
+        run bash -c "export HOME='${TEST_TEMP_DIR}'; bash '${CLAWSPARK_BIN}' provider use ollama"
+        [ "$status" -eq 0 ]
+        [[ "$output" == *"Provider updated: ollama"* ]]
+
+        run bash -c "grep -q '^CLAWSPARK_V2_PRIMARY_PROVIDER=ollama$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+        run bash -c "grep -q '^OLLAMA_BASE_URL=http://127.0.0.1:11434/v1$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+        run bash -c "grep -q '^OLLAMA_API_KEY=ollama$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+}

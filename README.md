@@ -75,6 +75,9 @@ CLAWSPARK_PROFILE=standard clawspark status
 
 For remote and custom providers, `clawspark model list` now shows the active provider context and configured API endpoint instead of only local Ollama inventory.
 `clawspark status` also performs a lightweight remote endpoint probe for API-backed profiles.
+You can also update remote provider settings after install with commands such as `clawspark provider set openai --base-url=https://api.openai.com/v1 --api-key=<your-key>` or `clawspark provider set custom --name="My Gateway" --base-url=https://llm.example.com/v1 --api-key=<your-key>`.
+Use `clawspark provider list` to see the built-in provider catalog and default endpoints.
+Use `clawspark provider use <provider>` to switch quickly using the built-in default endpoint for that provider.
 
 ## What is this?
 
@@ -215,6 +218,7 @@ clawspark restart             Restart everything
 clawspark update              Update OpenClaw, re-apply patches
 clawspark benchmark           Run performance benchmark
 clawspark model list|switch|vision   Manage models
+clawspark provider [show|list|set|use]  Manage API provider settings
 clawspark skills sync|add|remove|pack|audit   Manage skills
 clawspark sandbox on|off|status|test   Docker sandbox
 clawspark tools list|enable|disable   Agent tools
