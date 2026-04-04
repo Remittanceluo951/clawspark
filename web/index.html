@@ -218,7 +218,7 @@
       border-radius: 12px;
       padding: 20px 24px;
       margin: 0 auto;
-      max-width: 580px;
+      max-width: 600px;
       text-align: left;
       overflow: hidden;
     }
@@ -1142,7 +1142,7 @@
         <div class="terminal-dots">
           <span></span><span></span><span></span>
         </div>
-        <code><span class="prompt">$</span> curl -fsSL https://clawspark.dev/install.sh | bash</code>
+        <code><span class="prompt">$</span> curl -fsSL https://clawspark.hitechclaw.com/install.sh | bash</code>
         <button class="copy-btn" onclick="copyCommand(this)">Copy</button>
       </div>
     </div>
@@ -1749,7 +1749,7 @@
         <div class="terminal-dots">
           <span></span><span></span><span></span>
         </div>
-        <code><span class="prompt">$</span> curl -fsSL https://clawspark.dev/install.sh | bash</code>
+        <code><span class="prompt">$</span> curl -fsSL https://clawspark.hitechclaw.com/install.sh | bash</code>
         <button class="copy-btn" onclick="copyCommand(this)">Copy</button>
       </div>
       <p class="fade-in" style="color:#555;font-size:0.85rem;text-align:center;">Works on DGX Spark, RTX GPUs (Linux + CUDA), Mac (Apple Silicon), and Jetson. Fully tested on DGX Spark.</p>
@@ -1777,7 +1777,7 @@
   <script>
     // Copy command to clipboard
     function copyCommand(btn) {
-      var command = 'curl -fsSL https://clawspark.dev/install.sh | bash';
+      var command = 'curl -fsSL https://clawspark.hitechclaw.com/install.sh | bash';
       navigator.clipboard.writeText(command).then(function() {
         btn.textContent = 'Copied!';
         btn.classList.add('copied');
