@@ -1539,6 +1539,12 @@ _cmd_update() {
         log_warn "Re-run install.sh to apply patches."
     fi
 
+    if [[ -f "${lib_dir}/setup-systemd.sh" ]]; then
+        source "${lib_dir}/setup-systemd.sh"
+        log_info "Refreshing systemd service definitions..."
+        setup_systemd_services || log_warn "Systemd service refresh failed -- existing units kept."
+    fi
+
     # Restart gateway with correct env
     log_info "Restarting gateway..."
     _cmd_restart

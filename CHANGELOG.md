@@ -11,6 +11,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Installer now configures OpenClaw Control UI with `allowedOrigins=["*"]` by default for Caddy, Tailscale, and other reverse proxies.
 - `clawspark update` now migrates existing installations to the wildcard Control UI origin policy.
 - Tailscale setup now preserves wildcard Control UI origin settings instead of replacing them with a single remote origin.
+- Gateway startup now uses an explicit `--port 18789` across installer and runtime fallback flows.
+- `clawspark update` now refreshes `clawspark-gateway.service` and `clawspark-nodehost.service` so older installs receive the latest startup and restart settings.
 
 ### Added
 - Changelog tracking for future releases.

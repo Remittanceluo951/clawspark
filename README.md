@@ -273,6 +273,7 @@ clawspark uninstall           Remove everything
 ```
 
 `clawspark update` also migrates older installs so OpenClaw Control UI uses `allowedOrigins=["*"]` for reverse-proxy compatibility.
+It now refreshes `clawspark-gateway.service` and `clawspark-nodehost.service` as well, so existing machines receive the latest gateway port and restart behavior automatically.
 
 ## Dashboard
 
