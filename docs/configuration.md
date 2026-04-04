@@ -90,6 +90,21 @@ OLLAMA_API_KEY=ollama
 OLLAMA_BASE_URL=http://127.0.0.1:11434
 ```
 
+## Service Management
+
+On Linux, `clawspark` creates and maintains local systemd units for the OpenClaw stack, including:
+
+- `clawspark-gateway.service`
+- `clawspark-nodehost.service`
+
+If you installed an older version, run:
+
+```bash
+clawspark update
+```
+
+This now refreshes both service definitions so existing machines receive the latest gateway port and restart settings automatically.
+
 ## Environment Variables
 
 clawspark respects the following environment variables. Set them in your shell profile or in `~/.openclaw/gateway.env`:

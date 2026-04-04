@@ -333,6 +333,7 @@ clawspark update
 ```
 
 This pulls the latest OpenClaw release and updates skills. Your configuration and conversation history are preserved.
+It also refreshes `clawspark-gateway.service` and `clawspark-nodehost.service` so older installs receive the latest gateway port and restart settings automatically.
 
 **Run diagnostics if something breaks:**
 
@@ -417,6 +418,22 @@ clawspark skills sync --verbose
 # Restart OpenClaw to pick up changes
 clawspark restart
 ```
+
+### "Gateway or node host does not come back after an update or reboot"
+
+```bash
+# Refresh OpenClaw and service definitions
+clawspark update
+
+# Restart the local stack
+clawspark restart
+
+# Check service state
+systemctl status clawspark-gateway.service
+systemctl status clawspark-nodehost.service
+```
+
+If this is an older installation, `clawspark update` now re-writes both systemd units so the gateway uses the expected local port and the node host receives the latest restart behavior.
 
 ### "Can't reach the agent from another device on my network"
 
