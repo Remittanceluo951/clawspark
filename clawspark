@@ -58,20 +58,49 @@ _load_common() {
 
 _load_common
 
+_read_openclaw_json_value() {
+    local json_path="$1"
+    local config_file="${HOME}/.openclaw/openclaw.json"
+
+    [[ -f "${config_file}" ]] || return 1
+
+    python3 -c '
+import json, sys
+
+config_file = sys.argv[1]
+json_path = sys.argv[2].split(".")
+
+with open(config_file, "r", encoding="utf-8") as fh:
+    value = json.load(fh)
+
+for part in json_path:
+    if not isinstance(value, dict) or part not in value:
+        print("")
+        raise SystemExit(0)
+    value = value[part]
+
+if value is None:
+    print("")
+elif isinstance(value, (dict, list)):
+    print(json.dumps(value))
+else:
+    print(value)
+' "${config_file}" "${json_path}" 2>/dev/null || true
+}
+
 _current_model_ref() {
-    openclaw config get agents.defaults.model 2>/dev/null | tr -d '"' || true
+    local model_ref
+    model_ref="$(openclaw config get agents.defaults.model 2>/dev/null | tr -d '"' || true)"
+    if [[ -n "${model_ref}" ]]; then
+        printf '%s' "${model_ref}"
+        return 0
+    fi
+
+    _read_openclaw_json_value agents.defaults.model
 }
 
 _current_v2_provider_from_config() {
-    local config_file="${HOME}/.openclaw/openclaw.json"
-    [[ -f "${config_file}" ]] || return 1
-
-    python3 -c "
-import json, sys
-with open(sys.argv[1], 'r', encoding='utf-8') as fh:
-    cfg = json.load(fh)
-print(cfg.get('clawsparkV2', {}).get('primaryProvider', ''))
-" "${config_file}" 2>/dev/null || true
+    _read_openclaw_json_value clawsparkV2.primaryProvider
 }
 
 _current_custom_provider_label() {
@@ -80,15 +109,7 @@ _current_custom_provider_label() {
         return 0
     fi
 
-    local config_file="${HOME}/.openclaw/openclaw.json"
-    [[ -f "${config_file}" ]] || return 1
-
-    python3 -c "
-import json, sys
-with open(sys.argv[1], 'r', encoding='utf-8') as fh:
-    cfg = json.load(fh)
-print(cfg.get('clawsparkV2', {}).get('customProviderName', ''))
-" "${config_file}" 2>/dev/null || true
+    _read_openclaw_json_value clawsparkV2.customProviderName
 }
 
 _current_provider_base_url() {
@@ -177,6 +198,22 @@ _provider_display() {
     fi
 
     printf '%s' "${provider}"
+}
+
+_join_by() {
+    local delimiter="$1"
+    shift || true
+
+    local first=1
+    local item
+    for item in "$@"; do
+        if [[ ${first} -eq 1 ]]; then
+            printf '%s' "${item}"
+            first=0
+        else
+            printf '%s%s' "${delimiter}" "${item}"
+        fi
+    done
 }
 
 _provider_catalog_rows() {
@@ -439,14 +476,32 @@ _cmd_provider_list() {
 }
 
 _cmd_provider_doctor() {
-    local provider provider_display base_url api_key_env api_key_value model_ref endpoint_state
+    local output_format="text"
+    local provider provider_display base_url api_key_env api_key_value model_ref endpoint_state custom_label
     local has_issue=0
+    local -a issues=()
+    local -a suggestions=()
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --json)
+                output_format="json"
+                shift
+                ;;
+            *)
+                log_error "Unknown provider doctor option: $1"
+                printf '  Usage: clawspark provider doctor [--json]\n'
+                exit 1
+                ;;
+        esac
+    done
 
     provider="$(_current_provider)"
     provider_display="$(_current_provider_display)"
     base_url="$(_current_provider_base_url 2>/dev/null || true)"
     api_key_env="$(_provider_api_key_env_name "${provider}" 2>/dev/null || true)"
     model_ref="$(_current_model_ref)"
+    custom_label="$(_current_custom_provider_label 2>/dev/null || true)"
 
     if [[ -n "${api_key_env}" ]]; then
         api_key_value="${!api_key_env:-}"
@@ -454,37 +509,32 @@ _cmd_provider_doctor() {
         api_key_value=""
     fi
 
-    printf '\n%s%s clawspark provider doctor%s\n\n' "${BOLD}" "${BLUE}" "${RESET}"
-    printf '  %-22s %s\n' "Provider" "${provider_display}"
-    printf '  %-22s %s\n' "Model" "${model_ref:-not configured}"
-
     if [[ -n "${base_url}" ]]; then
-        printf '  %-22s %s\n' "Base URL" "${base_url}"
-        log_success "Base URL is configured"
+        :
     else
-        printf '  %-22s %s\n' "Base URL" "missing"
-        log_warn "Base URL is not configured"
+        issues+=("Base URL is not configured")
+        suggestions+=("Run clawspark provider set ${provider} --base-url <url> to configure the endpoint")
         has_issue=1
     fi
 
     if [[ "${provider}" == "custom" ]]; then
-        local custom_label
-        custom_label="$(_current_custom_provider_label 2>/dev/null || true)"
         if [[ -n "${custom_label}" ]]; then
-            log_success "Custom provider label is set: ${custom_label}"
+            :
         else
-            log_warn "Custom provider label is missing"
+            issues+=("Custom provider label is missing")
+            suggestions+=("Run clawspark provider set custom --name <label> --base-url <url>")
             has_issue=1
         fi
     fi
 
     if [[ -n "${api_key_env}" ]]; then
         if [[ -n "${api_key_value}" ]]; then
-            log_success "API key is configured via ${api_key_env}"
+            :
         elif [[ "${provider}" == "ollama" ]]; then
-            log_warn "OLLAMA_API_KEY is missing; local mode usually works best with OLLAMA_API_KEY=ollama"
+            suggestions+=("Set OLLAMA_API_KEY=ollama in ~/.openclaw/gateway.env for local compatibility")
         else
-            log_warn "API key is missing (${api_key_env})"
+            issues+=("API key is missing (${api_key_env})")
+            suggestions+=("Export ${api_key_env} in ~/.openclaw/gateway.env or rerun clawspark provider set ${provider} --api-key <key>")
             has_issue=1
         fi
     fi
@@ -492,43 +542,130 @@ _cmd_provider_doctor() {
     case "${provider}" in
         ollama)
             if [[ -n "${model_ref}" && "${model_ref}" != ollama/* ]]; then
-                log_warn "Model ref does not match provider. Expected ollama/* but found ${model_ref}"
+                issues+=("Model ref does not match provider. Expected ollama/* but found ${model_ref}")
+                suggestions+=("Switch to an Ollama model with clawspark model switch <model>")
                 has_issue=1
-            else
-                log_success "Model ref matches provider"
             fi
             ;;
         anthropic)
             if [[ -n "${model_ref}" && "${model_ref}" != anthropic/* ]]; then
-                log_warn "Model ref does not match provider. Expected anthropic/* but found ${model_ref}"
+                issues+=("Model ref does not match provider. Expected anthropic/* but found ${model_ref}")
+                suggestions+=("Update the default model to anthropic/<model> in OpenClaw config")
                 has_issue=1
-            else
-                log_success "Model ref matches provider"
             fi
             ;;
         openai|openrouter|google|custom)
             if [[ -n "${model_ref}" && "${model_ref}" != openai/* ]]; then
-                log_warn "Model ref does not match provider. Expected openai/* but found ${model_ref}"
+                issues+=("Model ref does not match provider. Expected openai/* but found ${model_ref}")
+                suggestions+=("Update the default model to openai/<model> in OpenClaw config")
                 has_issue=1
-            else
-                log_success "Model ref matches provider"
             fi
             ;;
     esac
 
     if [[ "${provider}" != "ollama" ]]; then
         endpoint_state="$(_probe_remote_endpoint_status "${base_url}")"
-        printf '  %-22s %s\n' "Endpoint probe" "${endpoint_state}"
-
         case "${endpoint_state}" in
             responding*|skipped|curl\ unavailable)
-                log_success "Endpoint probe completed: ${endpoint_state}"
                 ;;
             *)
-                log_warn "Endpoint probe reported: ${endpoint_state}"
+                issues+=("Endpoint probe reported: ${endpoint_state}")
+                suggestions+=("Verify network reachability and confirm the configured base URL: ${base_url}")
                 has_issue=1
                 ;;
         esac
+    else
+        endpoint_state="local"
+    fi
+
+    if [[ "${output_format}" == "json" ]]; then
+        local issues_joined suggestions_joined
+        issues_joined="$(_join_by '||' "${issues[@]}")"
+        suggestions_joined="$(_join_by '||' "${suggestions[@]}")"
+
+        python3 - <<'PY' "${provider}" "${provider_display}" "${model_ref}" "${base_url}" "${api_key_env}" "${api_key_value}" "${custom_label}" "${endpoint_state}" "${has_issue}" "${issues_joined}" "${suggestions_joined}"
+import json, sys
+
+provider, provider_display, model_ref, base_url, api_key_env, api_key_value, custom_label, endpoint_state, has_issue, issues_raw, suggestions_raw = sys.argv[1:]
+
+payload = {
+    "provider": provider,
+    "providerDisplay": provider_display,
+    "model": model_ref,
+    "baseUrl": base_url,
+    "apiKeyEnv": api_key_env,
+    "apiKeyConfigured": bool(api_key_value),
+    "customProviderName": custom_label,
+    "endpointProbe": endpoint_state,
+    "status": "issues" if has_issue == "1" else "ok",
+    "issues": [item for item in issues_raw.split("||") if item],
+    "suggestions": [item for item in suggestions_raw.split("||") if item],
+}
+
+print(json.dumps(payload, indent=2))
+PY
+
+        if [[ ${has_issue} -eq 0 ]]; then
+            return 0
+        fi
+        return 1
+    fi
+
+    printf '\n%s%s clawspark provider doctor%s\n\n' "${BOLD}" "${BLUE}" "${RESET}"
+    printf '  %-22s %s\n' "Provider" "${provider_display}"
+    printf '  %-22s %s\n' "Model" "${model_ref:-not configured}"
+    printf '  %-22s %s\n' "Base URL" "${base_url:-missing}"
+    if [[ "${provider}" == "custom" ]]; then
+        printf '  %-22s %s\n' "Custom label" "${custom_label:-missing}"
+    fi
+    if [[ -n "${api_key_env}" ]]; then
+        if [[ -n "${api_key_value}" ]]; then
+            printf '  %-22s configured via %s\n' "API key" "${api_key_env}"
+        else
+            printf '  %-22s missing (%s)\n' "API key" "${api_key_env}"
+        fi
+    fi
+    printf '  %-22s %s\n' "Endpoint probe" "${endpoint_state}"
+
+    if [[ -n "${base_url}" ]]; then
+        log_success "Base URL is configured"
+    else
+        log_warn "Base URL is not configured"
+    fi
+    if [[ "${provider}" == "custom" ]]; then
+        if [[ -n "${custom_label}" ]]; then
+            log_success "Custom provider label is set: ${custom_label}"
+        else
+            log_warn "Custom provider label is missing"
+        fi
+    fi
+    if [[ -n "${api_key_env}" ]]; then
+        if [[ -n "${api_key_value}" ]]; then
+            log_success "API key is configured via ${api_key_env}"
+        elif [[ "${provider}" == "ollama" ]]; then
+            log_warn "OLLAMA_API_KEY is missing; local mode usually works best with OLLAMA_API_KEY=ollama"
+        else
+            log_warn "API key is missing (${api_key_env})"
+        fi
+    fi
+    if [[ ${#issues[@]} -eq 0 ]]; then
+        log_success "Model ref matches provider"
+        if [[ "${provider}" != "ollama" ]]; then
+            log_success "Endpoint probe completed: ${endpoint_state}"
+        fi
+    else
+        local issue
+        for issue in "${issues[@]}"; do
+            log_warn "${issue}"
+        done
+    fi
+
+    if [[ ${#suggestions[@]} -gt 0 ]]; then
+        local suggestion
+        printf '\n  Suggestions:\n'
+        for suggestion in "${suggestions[@]}"; do
+            printf '    - %s\n' "${suggestion}"
+        done
     fi
 
     printf '\n'
@@ -752,7 +889,7 @@ _cmd_provider() {
             _cmd_provider_list
             ;;
         doctor)
-            _cmd_provider_doctor
+            _cmd_provider_doctor "$@"
             ;;
         show)
             _cmd_provider_show
@@ -774,7 +911,7 @@ _cmd_provider() {
             ;;
         *)
             log_error "Unknown provider subcommand: ${subcmd}"
-            printf '  Usage: clawspark provider [show|list|doctor|set <provider> [options]|use [provider] [options]|set-custom --name <label> --base-url <url> [--api-key <key>]]\n'
+            printf '  Usage: clawspark provider [show|list|doctor [--json]|set <provider> [options]|use [provider] [options]|set-custom --name <label> --base-url <url> [--api-key <key>]]\n'
             exit 1
             ;;
     esac
@@ -844,6 +981,7 @@ ${BOLD}Commands:${RESET}
     ${GREEN}provider${RESET}            Show current provider configuration
     ${GREEN}provider list${RESET}       Show supported provider catalog
     ${GREEN}provider doctor${RESET}     Validate current provider setup
+    ${GREEN}provider doctor --json${RESET} Output diagnostics as JSON
     ${GREEN}provider set <p> ...${RESET} Update remote provider settings
     ${GREEN}provider use [p]${RESET}  Switch provider using default endpoints
     ${GREEN}provider set-custom ...${RESET} Update custom provider settings

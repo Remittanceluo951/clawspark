@@ -266,6 +266,7 @@ clawspark provider set custom --name="My Gateway" --base-url=https://llm.example
 `clawspark provider list` shows the built-in provider catalog, runtime compatibility, and default base URLs.
 `clawspark provider use <provider>` switches to a provider using its built-in default base URL. Running `clawspark provider use` without arguments opens an interactive provider picker. For remote APIs, add `--api-key` now or export the matching key later in `~/.openclaw/gateway.env`.
 `clawspark provider doctor` validates the current provider configuration, checks whether the expected API key and base URL are present, probes remote endpoints, and warns if the active model prefix does not match the selected provider.
+Add `--json` to `clawspark provider doctor` when you need machine-readable diagnostics for scripts or CI checks.
 
 `clawspark provider set-custom ...` remains available as a shortcut for the custom-provider flow.
 

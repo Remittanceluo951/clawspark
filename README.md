@@ -80,6 +80,7 @@ Use `clawspark provider list` to see the built-in provider catalog and default e
 Use `clawspark provider use <provider>` to switch quickly using the built-in default endpoint for that provider.
 Running `clawspark provider use` with no provider now opens a provider selection flow.
 Use `clawspark provider doctor` to validate the active provider configuration, expected env vars, endpoint reachability, and model/provider alignment.
+Use `clawspark provider doctor --json` for automation-friendly diagnostics output.
 
 ## What is this?
 
@@ -275,6 +276,46 @@ bash tests/run.sh
 | `skills.bats` | 16 | YAML parsing, add/remove, packs |
 | `security.bats` | 11 | Token generation, permissions, deny lists |
 | `cli.bats` | 19 | Version, help, routing, error handling |
+
+## npm Package
+
+[![npm version](https://img.shields.io/npm/v/clawspark.svg)](https://www.npmjs.com/package/clawspark)
+
+`clawspark` can also be distributed as an npm package for installing the CLI entrypoint:
+
+```bash
+npm install -g clawspark
+```
+
+Local package validation:
+
+```bash
+npm run pack:check
+```
+
+Public publishing is automated through `.github/workflows/publish-npm.yml` and expects an `NPM_TOKEN` repository secret.
+
+Example setup:
+
+1. Add repository secret `NPM_TOKEN` in GitHub Actions secrets.
+2. Make sure the token belongs to npm user `hitechclaw`.
+3. Make sure the tag matches `package.json` version exactly, for example `v2.0.0` for version `2.0.0`.
+4. Push the tag.
+5. GitHub Actions validates metadata, checks the packed tarball, verifies the npm account, and publishes `clawspark` to npmjs.com with provenance.
+
+Example release flow:
+
+```bash
+npm version patch
+git push origin main --follow-tags
+```
+
+Or manually:
+
+```bash
+git tag v2.0.0
+git push origin v2.0.0
+```
 
 ## Acknowledgements
 

@@ -1,0 +1,53 @@
+{
+  "name": "clawspark",
+  "version": "2.0.0",
+  "description": "One-command OpenClaw installer and CLI for local, CPU-first, and API-backed AI agent deployments.",
+  "author": "hitechclaw",
+  "license": "MIT",
+  "homepage": "https://github.com/thanhan92-f1/clawspark#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thanhan92-f1/clawspark.git"
+  },
+  "bugs": {
+    "url": "https://github.com/thanhan92-f1/clawspark/issues"
+  },
+  "keywords": [
+    "openclaw",
+    "ai-agent",
+    "cli",
+    "ollama",
+    "installer",
+    "local-ai",
+    "cpu-ai",
+    "api-gateway"
+  ],
+  "bin": {
+    "clawspark": "./clawspark"
+  },
+  "files": [
+    "clawspark",
+    "install.sh",
+    "uninstall.sh",
+    "lib",
+    "configs",
+    "v2",
+    "web",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "lint": "bash -n ./clawspark",
+    "test": "bash ./tests/run.sh",
+    "pack:check": "npm pack --dry-run"
+  },
+  "preferGlobal": true,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -231,7 +231,7 @@ ENV
         [[ "$output" == *"https://your-provider.example.com/v1"* ]]
 }
 
-    @test "provider doctor succeeds for healthy custom provider config" {
+@test "provider doctor succeeds for healthy custom provider config" {
         mkdir -p "${HOME}/.openclaw" "${TEST_TEMP_DIR}/bin"
 
         cat > "${HOME}/.openclaw/gateway.env" <<'ENV'
@@ -266,9 +266,9 @@ ENV
         [ "$status" -eq 0 ]
         [[ "$output" == *"Provider diagnostics passed"* ]]
         [[ "$output" == *"responding (HTTP 401)"* ]]
-    }
+}
 
-    @test "provider doctor fails for missing remote api key" {
+@test "provider doctor fails for missing remote api key" {
         mkdir -p "${HOME}/.openclaw" "${TEST_TEMP_DIR}/bin"
 
         cat > "${HOME}/.openclaw/gateway.env" <<'ENV'
@@ -300,6 +300,52 @@ ENV
         [ "$status" -eq 1 ]
         [[ "$output" == *"API key is missing (OPENAI_API_KEY)"* ]]
         [[ "$output" == *"Provider diagnostics found issues"* ]]
+        [[ "$output" == *"Suggestions:"* ]]
+}
+
+@test "provider doctor json reports model mismatch and suggestions" {
+        mkdir -p "${HOME}/.openclaw" "${TEST_TEMP_DIR}/bin"
+
+        cat > "${HOME}/.openclaw/gateway.env" <<'ENV'
+    CLAWSPARK_V2_RUNTIME_MODE=api-only
+    CLAWSPARK_V2_PRIMARY_PROVIDER=custom
+    CUSTOM_AI_PROVIDER_NAME=My Gateway
+    CUSTOM_AI_BASE_URL=https://llm.example.com/v1
+    CUSTOM_AI_API_KEY=secret-token
+    ENV
+
+        cat > "${HOME}/.openclaw/openclaw.json" <<'JSON'
+    {
+        "agents": {
+        "defaults": {
+            "model": "anthropic/claude-sonnet"
+        }
+        },
+        "clawsparkV2": {
+        "primaryProvider": "custom",
+        "customProviderName": "My Gateway"
+        }
+}
+    JSON
+
+        cat > "${TEST_TEMP_DIR}/bin/curl" <<'SH'
+    #!/usr/bin/env bash
+    printf '401'
+    SH
+        chmod +x "${TEST_TEMP_DIR}/bin/curl"
+
+        run bash -c "export HOME='${TEST_TEMP_DIR}'; export PATH='${TEST_TEMP_DIR}/bin:'\"\$PATH\"; bash '${CLAWSPARK_BIN}' provider doctor --json"
+        [ "$status" -eq 1 ]
+        run python3 - <<'PY' "$output"
+    import json, sys
+    payload = json.loads(sys.argv[1])
+    assert payload["provider"] == "custom"
+    assert payload["model"] == "anthropic/claude-sonnet"
+    assert payload["status"] == "issues"
+    assert any("Expected openai/*" in item for item in payload["issues"])
+    assert any("openai/<model>" in item for item in payload["suggestions"])
+    PY
+        [ "$status" -eq 0 ]
     }
 
 @test "provider set-custom updates gateway env and openclaw config" {

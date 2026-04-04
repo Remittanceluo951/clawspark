@@ -9,6 +9,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 - Changelog tracking for future releases.
+- npm packaging metadata via `package.json` and `.npmignore`.
+- GitHub Actions workflow for publishing public npm releases from version tags.
+- Release validation that checks tag/version alignment before npm publish.
+- npm publish hardening with owner validation for the `hitechclaw` account and provenance-enabled releases.
 
 ## [2.0.0] - 2026-04-04
 
