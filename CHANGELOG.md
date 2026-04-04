@@ -27,6 +27,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Repository governance files for security reporting, contribution workflow, and code ownership.
 - Release helper script for validated version bumps and tag creation.
 
+## [2.1.1] - 2026-04-04
+
+### Changed
+- Updated npm package metadata so the published package page points to `https://clawspark.hitechclaw.com`.
+- Clarified the npm package description to state that use is limited to strictly non-commercial purposes.
+- Updated npm-facing README content to reference the scoped package `@hitechclaw/clawspark` while keeping the installed CLI command as `clawspark`.
+
 ## [2.0.0] - 2026-04-04
 
 ### Added
@@ -41,4 +48,5 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Updated repository metadata, deployment settings, and project documentation.
 
 [Unreleased]: https://github.com/thanhan92-f1/clawspark/compare/main...HEAD
+[2.1.1]: https://github.com/thanhan92-f1/clawspark/releases/tag/v2.1.1
 [2.0.0]: https://github.com/thanhan92-f1/clawspark/releases/tag/v2.0.0
