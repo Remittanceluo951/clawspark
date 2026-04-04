@@ -13,6 +13,7 @@
   <a href="docs/tutorial.md">Tutorial</a> &middot;
   <a href="docs/configuration.md">Configuration</a> &middot;
   <a href="SECURITY.md">Security</a> &middot;
+  <a href="NOTICE">License Notice</a> &middot;
   <a href="CONTRIBUTING.md">Contributing Guide</a> &middot;
   <a href="CHANGELOG.md">Changelog</a> &middot;
   <a href="#contributing">Contributing</a>
@@ -372,7 +373,25 @@ for-profit use are prohibited unless you have prior written permission from
 the copyright holder. Exclusive commercialization rights are reserved to the
 repository owner/copyright holder.
 
-See [LICENSE](LICENSE).
+Allowed without separate permission:
+
+- personal use
+- private use
+- educational use
+- non-commercial research use
+
+Not allowed without prior written permission:
+
+- business or company use
+- consulting or implementation services
+- internal use inside a commercial organization
+- paid support, training, integration, or managed services
+- resale, sublicensing, hosting, SaaS, bundling, or monetization
+
+Only the repository owner / copyright holder may commercialize this project
+or grant commercial licenses.
+
+See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
 ---
 

@@ -2,6 +2,14 @@
 
 Thanks for contributing to `clawspark`.
 
+## License Reminder
+
+By contributing to this repository, you agree that your contributions are
+submitted under the repository's license and may be used, modified,
+distributed, and commercially licensed by the repository owner/copyright
+holder. Third parties do not receive commercial rights unless separately
+authorized in writing by the copyright holder.
+
 ## Development Workflow
 
 1. create a branch from `main`

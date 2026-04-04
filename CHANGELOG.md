@@ -9,6 +9,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 - Changelog tracking for future releases.
+- Custom personal-use license with an explicit prohibition on commercial,
+  consulting, and other for-profit use by third parties.
+- `NOTICE` file summarizing the repository's personal-use-only terms.
 - npm packaging metadata via `package.json` and `.npmignore`.
 - GitHub Actions workflow for publishing public npm releases from version tags.
 - Release validation that checks tag/version alignment before npm publish.
