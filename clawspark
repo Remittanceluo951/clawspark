@@ -1964,6 +1964,15 @@ _cmd_stop() {
 
 # ── _start_dashboard (helper) ─────────────────────────────────────────────
 _start_dashboard() {
+    local dashboard_launcher="${CLAWSPARK_DIR}/bin/clawmetry-dashboard"
+
+    if [[ -x "${dashboard_launcher}" ]]; then
+        nohup "${dashboard_launcher}" >> "${CLAWSPARK_DIR}/dashboard.log" 2>&1 &
+        echo $! > "${CLAWSPARK_DIR}/dashboard.pid"
+        log_success "Dashboard started via clawspark launcher (PID $!)."
+        return
+    fi
+
     # Method 1: clawmetry CLI in PATH
     if check_command clawmetry; then
         nohup clawmetry --port 8900 --host 127.0.0.1 >> "${CLAWSPARK_DIR}/dashboard.log" 2>&1 &

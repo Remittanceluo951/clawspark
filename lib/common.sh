@@ -270,3 +270,39 @@ _parse_enabled_skills() {
         fi
     done < "${skills_file}"
 }
+
+find_clawmetry_command() {
+    local user_home="${1:-${HOME}}"
+    local cmd=""
+
+    if check_command clawmetry; then
+        cmd=$(command -v clawmetry 2>/dev/null || true)
+    fi
+
+    if [[ -z "${cmd}" ]] && [[ -x "${user_home}/.local/bin/clawmetry" ]]; then
+        cmd="${user_home}/.local/bin/clawmetry"
+    fi
+
+    if [[ -z "${cmd}" ]]; then
+        local user_base=""
+        user_base=$(python3 -m site --user-base 2>/dev/null || true)
+        if [[ -n "${user_base}" ]] && [[ -x "${user_base}/bin/clawmetry" ]]; then
+            cmd="${user_base}/bin/clawmetry"
+        fi
+    fi
+
+    if [[ -z "${cmd}" ]]; then
+        local pyver=""
+        pyver=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)
+        if [[ -n "${pyver}" ]] && [[ -x "${user_home}/Library/Python/${pyver}/bin/clawmetry" ]]; then
+            cmd="${user_home}/Library/Python/${pyver}/bin/clawmetry"
+        fi
+    fi
+
+    if [[ -n "${cmd}" ]]; then
+        printf '%s' "${cmd}"
+        return 0
+    fi
+
+    return 1
+}

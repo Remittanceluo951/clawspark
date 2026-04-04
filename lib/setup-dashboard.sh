@@ -7,6 +7,9 @@ setup_dashboard() {
     log_info "Setting up ClawMetry observability dashboard..."
     hr
 
+    local dashboard_launcher="${CLAWSPARK_DIR}/bin/clawmetry-dashboard"
+    mkdir -p "${CLAWSPARK_DIR}/bin"
+
     # ── Check dependencies ───────────────────────────────────────────────────
     if ! check_command python3; then
         log_warn "python3 not found -- skipping dashboard."
@@ -17,7 +20,7 @@ setup_dashboard() {
     local install_ok=false
 
     log_info "Installing ClawMetry via pip..."
-    if _pip_install clawmetry; then
+    if _pip_install_clawmetry; then
         install_ok=true
         log_success "ClawMetry installed via pip."
     else
@@ -36,12 +39,15 @@ setup_dashboard() {
         fi
 
         if [[ -d "${clone_dir}" ]]; then
-            log_info "Installing Flask dependency..."
-            if _pip_install flask; then
+            log_info "Installing ClawMetry dependencies from source..."
+            if _pip_install -r "${clone_dir}/requirements.txt"; then
+                install_ok=true
+                log_success "ClawMetry source dependencies installed."
+            elif _pip_install clawmetry; then
                 install_ok=true
                 log_success "ClawMetry installed from source."
             else
-                log_warn "Flask install failed -- dashboard may not work."
+                log_warn "ClawMetry source install failed -- dashboard may not work."
             fi
         else
             log_warn "Failed to clone ClawMetry -- skipping dashboard."
@@ -69,8 +75,14 @@ setup_dashboard() {
 CMEOF
     log_info "ClawMetry configured to use OpenClaw workspace at ${openclaw_dir}"
 
+    if _write_dashboard_launcher "${dashboard_launcher}" "${openclaw_dir}"; then
+        log_success "Dashboard launcher prepared at ${dashboard_launcher}"
+    else
+        log_warn "Could not create dashboard launcher."
+    fi
+
     # ── Start ClawMetry as a background service ──────────────────────────────
-    _start_dashboard
+    _start_dashboard "${dashboard_launcher}"
 
     # ── Verify dashboard is accessible ───────────────────────────────────────
     local retries=5
@@ -110,27 +122,56 @@ CMEOF
 
 # pip install that handles PEP 668 (externally managed Python on Ubuntu 23.04+)
 _pip_install() {
-    local pkg="$1"
+    local -a pip_args=("$@")
     # Try normal pip first
-    if pip3 install "${pkg}" >> "${CLAWSPARK_LOG}" 2>&1; then
+    if pip3 install "${pip_args[@]}" >> "${CLAWSPARK_LOG}" 2>&1; then
         return 0
     fi
     # Try --user
-    if pip3 install --user "${pkg}" >> "${CLAWSPARK_LOG}" 2>&1; then
+    if pip3 install --user "${pip_args[@]}" >> "${CLAWSPARK_LOG}" 2>&1; then
         return 0
     fi
     # Try --break-system-packages (PEP 668 workaround for managed Python)
-    if pip3 install --break-system-packages "${pkg}" >> "${CLAWSPARK_LOG}" 2>&1; then
+    if pip3 install --break-system-packages "${pip_args[@]}" >> "${CLAWSPARK_LOG}" 2>&1; then
         return 0
     fi
     # Try python3 -m pip as last resort
-    if python3 -m pip install --break-system-packages "${pkg}" >> "${CLAWSPARK_LOG}" 2>&1; then
+    if python3 -m pip install --break-system-packages "${pip_args[@]}" >> "${CLAWSPARK_LOG}" 2>&1; then
         return 0
     fi
     return 1
 }
 
+_pip_install_clawmetry() {
+    _pip_install "clawmetry" && return 0
+    _pip_install "clawmetry[otel]" && return 0
+    return 1
+}
+
+_write_dashboard_launcher() {
+    local launcher_path="$1"
+    local openclaw_dir="$2"
+    local clawmetry_cmd=""
+    clawmetry_cmd=$(find_clawmetry_command "${HOME}" 2>/dev/null || true)
+
+    cat > "${launcher_path}" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+export CLAWMETRY_OPENCLAW_DIR="${openclaw_dir}"
+
+if [[ -n "${clawmetry_cmd}" ]] && [[ -x "${clawmetry_cmd}" ]]; then
+    exec "${clawmetry_cmd}" --host 127.0.0.1 --port 8900
+fi
+
+exec python3 -m clawmetry --host 127.0.0.1 --port 8900
+EOF
+    chmod +x "${launcher_path}" 2>/dev/null || true
+    [[ -x "${launcher_path}" ]]
+}
+
 _start_dashboard() {
+    local dashboard_launcher="${1:-${CLAWSPARK_DIR}/bin/clawmetry-dashboard}"
     local dashboard_log="${CLAWSPARK_DIR}/dashboard.log"
     local dashboard_pid_file="${CLAWSPARK_DIR}/dashboard.pid"
 
@@ -147,37 +188,20 @@ _start_dashboard() {
 
     log_info "Starting ClawMetry dashboard..."
 
-    # Try multiple launch methods in order of preference.
-    # The pip --user install puts the CLI in ~/.local/bin (or ~/Library/Python/*/bin
-    # on macOS) which may not be on PATH.
-    local -a cli_paths=(
-        "$(command -v clawmetry 2>/dev/null || true)"
-        "${HOME}/.local/bin/clawmetry"
-    )
-    # macOS: pip --user installs to ~/Library/Python/X.Y/bin/
-    local _pyver
-    _pyver=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "")
-    if [[ -n "${_pyver}" ]]; then
-        cli_paths+=("${HOME}/Library/Python/${_pyver}/bin/clawmetry")
-    fi
-
     local dash_pid=""
     local started=false
 
-    # Method 1: CLI entry point
-    for _cp in "${cli_paths[@]}"; do
-        [[ -z "${_cp}" ]] && continue
-        [[ -x "${_cp}" ]] || continue
-        nohup "${_cp}" --port 8900 --host 127.0.0.1 > "${dashboard_log}" 2>&1 &
+    # Method 1: dedicated launcher script
+    if [[ -x "${dashboard_launcher}" ]]; then
+        nohup "${dashboard_launcher}" > "${dashboard_log}" 2>&1 &
         dash_pid=$!
         echo "${dash_pid}" > "${dashboard_pid_file}"
         sleep 2
         if kill -0 "${dash_pid}" 2>/dev/null; then
             log_success "ClawMetry running (PID ${dash_pid}). Logs: ${dashboard_log}"
             started=true
-            break
         fi
-    done
+    fi
 
     # Method 2: python3 -m clawmetry
     if [[ "${started}" != "true" ]]; then

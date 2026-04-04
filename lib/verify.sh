@@ -71,7 +71,7 @@ verify_installation() {
 
     # ── 6. Tools profile ──────────────────────────────────────────────────
     local tools_profile
-    tools_profile=$(openclaw config get tools.profile 2>/dev/null || echo "unknown")
+    tools_profile=$(_read_tools_profile)
     if [[ "${tools_profile}" == *"full"* ]]; then
         _check_pass "Tools: full profile (web, exec, browser, filesystem)"
     else
@@ -137,6 +137,38 @@ verify_installation() {
     else
         log_warn "${pass} passed, ${fail} failed. Review the items marked with ✗ above."
     fi
+}
+
+_read_tools_profile() {
+    local tools_profile=""
+
+    if check_command openclaw; then
+        tools_profile=$(openclaw config get tools.profile 2>/dev/null | tail -n1 || true)
+    fi
+
+    tools_profile=$(printf '%s' "${tools_profile}" | tr -d '\r' | sed -e 's/^"//' -e 's/"$//')
+
+    if [[ -z "${tools_profile}" ]] || [[ "${tools_profile}" == "unknown" ]] || [[ "${tools_profile}" == "null" ]]; then
+        tools_profile=$(python3 - <<'PY'
+import json
+import os
+
+config_file = os.path.expanduser('~/.openclaw/openclaw.json')
+try:
+    with open(config_file, 'r', encoding='utf-8') as fh:
+        value = json.load(fh)
+    print(value.get('tools', {}).get('profile', 'unknown'))
+except Exception:
+    print('unknown')
+PY
+)
+    fi
+
+    if [[ -z "${tools_profile}" ]]; then
+        tools_profile="unknown"
+    fi
+
+    printf '%s' "${tools_profile}"
 }
 
 # ── Benchmark ───────────────────────────────────────────────────────────────

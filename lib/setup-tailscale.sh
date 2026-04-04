@@ -4,6 +4,87 @@
 # Uses `tailscale serve` as a reverse proxy -- does NOT restart the gateway.
 set -euo pipefail
 
+_tailscale_with_timeout() {
+    local seconds="$1"
+    shift
+
+    if check_command timeout; then
+        timeout "${seconds}" "$@"
+    else
+        "$@"
+    fi
+}
+
+_tailscale_extract_help_url() {
+    grep -Eo 'https://[^ ]+' | head -1 || true
+}
+
+_tailscale_needs_enablement() {
+    local output="$1"
+    echo "${output}" | grep -Eqi 'not enabled|serve is disabled|enable.*serve|enable.*https|https.*not enabled|disabled on your tailnet|admin console|admin panel|visit.*https://'
+}
+
+_tailscale_configure_serve() {
+    local target="$1"
+    local output=""
+    local -a serve_commands=(
+        "sudo tailscale serve --bg --https=443 ${target}"
+        "sudo tailscale serve --bg --https 443 ${target}"
+        "sudo tailscale serve --bg ${target}"
+    )
+    local cmd
+
+    for cmd in "${serve_commands[@]}"; do
+        output=$(bash -lc "${cmd}" 2>&1)
+        local exit_code=$?
+        printf '%s\n' "${output}" >> "${CLAWSPARK_LOG}"
+
+        if [[ ${exit_code} -eq 0 ]]; then
+            return 0
+        fi
+
+        if _tailscale_needs_enablement "${output}"; then
+            printf '%s' "${output}"
+            return 2
+        fi
+    done
+
+    printf '%s' "${output}"
+    return 1
+}
+
+_merge_allowed_origin() {
+    local origin="$1"
+    local existing=""
+
+    existing=$(openclaw config get gateway.controlUi.allowedOrigins 2>/dev/null || echo "")
+
+    python3 - "$existing" "$origin" <<'PY'
+import json
+import sys
+
+raw = sys.argv[1].strip()
+origin = sys.argv[2]
+origins = []
+
+if raw and raw not in {"null", "unknown", "undefined"}:
+    try:
+        parsed = json.loads(raw)
+    except Exception:
+        parsed = raw.strip().strip('"').strip("'")
+
+    if isinstance(parsed, list):
+        origins = [str(item) for item in parsed if str(item).strip()]
+    elif isinstance(parsed, str) and parsed.strip():
+        origins = [parsed.strip()]
+
+if origin not in origins:
+    origins.append(origin)
+
+print(json.dumps(origins))
+PY
+}
+
 setup_tailscale() {
     log_info "Tailscale setup (optional)..."
     hr
@@ -89,28 +170,33 @@ print(dns_name.rstrip('.'))
 
     # Check if tailscale serve is available on this tailnet
     local serve_check
-    serve_check=$(timeout 5 sudo tailscale serve status 2>&1 || true)
-    if echo "${serve_check}" | grep -qi "not enabled"; then
+    serve_check=$(_tailscale_with_timeout 5 sudo tailscale serve status 2>&1 || true)
+    if _tailscale_needs_enablement "${serve_check}"; then
         log_warn "Tailscale Serve is not enabled on your tailnet."
         local enable_url
-        enable_url=$(echo "${serve_check}" | grep -o 'https://[^ ]*' | head -1 || echo "")
+        enable_url=$(printf '%s\n' "${serve_check}" | _tailscale_extract_help_url)
         if [[ -n "${enable_url}" ]]; then
             log_info "Enable it at: ${enable_url}"
         fi
         log_info "After enabling, run: sudo tailscale serve --bg http://127.0.0.1:18789"
     else
         # Try to configure the proxy
-        local serve_ok=false
-        if timeout 10 sudo tailscale serve --bg --https 443 http://127.0.0.1:18789 >> "${CLAWSPARK_LOG}" 2>&1; then
-            serve_ok=true
-        elif timeout 10 sudo tailscale serve --bg http://127.0.0.1:18789 >> "${CLAWSPARK_LOG}" 2>&1; then
-            serve_ok=true
-        fi
-
-        if [[ "${serve_ok}" == "true" ]]; then
+        local serve_output=""
+        if serve_output=$(_tailscale_configure_serve http://127.0.0.1:18789 2>&1); then
             log_success "Tailscale serve configured (HTTPS -> localhost:18789)."
+        elif [[ $? -eq 2 ]]; then
+            log_warn "Tailscale Serve requires tailnet enablement before it can be configured automatically."
+            local enable_url
+            enable_url=$(printf '%s\n' "${serve_output}" | _tailscale_extract_help_url)
+            if [[ -n "${enable_url}" ]]; then
+                log_info "Enable it at: ${enable_url}"
+            fi
+            log_info "After enabling, run: sudo tailscale serve --bg http://127.0.0.1:18789"
         else
             log_warn "tailscale serve could not be configured automatically."
+            if [[ -n "${serve_output}" ]]; then
+                log_info "tailscale serve output: ${serve_output}"
+            fi
             log_info "You can set it up manually: sudo tailscale serve --bg http://127.0.0.1:18789"
         fi
     fi
@@ -120,15 +206,19 @@ print(dns_name.rstrip('.'))
     # Tailscale HTTPS URL with "origin not allowed".
     local ts_url="https://${ts_fqdn}"
     log_info "Adding ${ts_url} to gateway allowedOrigins..."
-    openclaw config set gateway.controlUi.allowedOrigins "[\"${ts_url}\"]" >> "${CLAWSPARK_LOG}" 2>&1 || {
+    local merged_allowed_origins=""
+    merged_allowed_origins=$(_merge_allowed_origin "${ts_url}")
+    local current_allowed_origins=""
+    current_allowed_origins=$(openclaw config get gateway.controlUi.allowedOrigins 2>/dev/null || echo "")
+    openclaw config set gateway.controlUi.allowedOrigins "${merged_allowed_origins}" >> "${CLAWSPARK_LOG}" 2>&1 || {
         log_warn "Could not set allowedOrigins. You may need to run:"
-        log_info "  openclaw config set gateway.controlUi.allowedOrigins '[\"${ts_url}\"]'"
+        log_info "  openclaw config set gateway.controlUi.allowedOrigins '${merged_allowed_origins}'"
     }
 
     # Restart the gateway to pick up the new origin (but keep node host running)
     local gateway_pid_file="${CLAWSPARK_DIR}/gateway.pid"
     local gateway_log="${CLAWSPARK_DIR}/gateway.log"
-    if [[ -f "${gateway_pid_file}" ]]; then
+    if [[ "${current_allowed_origins}" != "${merged_allowed_origins}" && -f "${gateway_pid_file}" ]]; then
         local old_pid
         old_pid=$(cat "${gateway_pid_file}")
         if kill -0 "${old_pid}" 2>/dev/null; then

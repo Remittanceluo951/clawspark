@@ -107,11 +107,12 @@ NHEOF
     log_success "Created clawspark-nodehost.service"
 
     # ── Dashboard service ────────────────────────────────────────────────────
+    local clawmetry_launcher="${CLAWSPARK_DIR}/bin/clawmetry-dashboard"
     local clawmetry_bin=""
-    if command -v clawmetry &>/dev/null; then
-        clawmetry_bin=$(command -v clawmetry)
-    elif [[ -x "${user_home}/.local/bin/clawmetry" ]]; then
-        clawmetry_bin="${user_home}/.local/bin/clawmetry"
+    if [[ -x "${clawmetry_launcher}" ]]; then
+        clawmetry_bin="${clawmetry_launcher}"
+    else
+        clawmetry_bin=$(find_clawmetry_command "${user_home}" 2>/dev/null || echo "")
     fi
 
     if [[ -n "${clawmetry_bin}" ]]; then
@@ -124,7 +125,8 @@ After=network.target
 Type=simple
 User=${user_name}
 Environment=HOME=${user_home}
-ExecStart=${clawmetry_bin} --port 8900 --host 127.0.0.1
+Environment=PATH=${svc_path}
+ExecStart=${clawmetry_bin}
 Restart=on-failure
 RestartSec=5
 StandardOutput=append:${user_home}/.clawspark/dashboard.log
