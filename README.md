@@ -367,7 +367,12 @@ PRs welcome. Areas where help is needed:
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Personal-use only. Commercial use, consulting, business use, and other
+for-profit use are prohibited unless you have prior written permission from
+the copyright holder. Exclusive commercialization rights are reserved to the
+repository owner/copyright holder.
+
+See [LICENSE](LICENSE).
 
 ---
 
