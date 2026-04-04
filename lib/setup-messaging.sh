@@ -155,7 +155,7 @@ _start_gateway() {
     local env_file="${HOME}/.openclaw/gateway.env"
     if [[ -f "${env_file}" ]]; then set +e; set -a; source "${env_file}" 2>/dev/null; set +a; set -e; fi
 
-    nohup openclaw gateway run --bind loopback > "${gateway_log}" 2>&1 &
+    nohup openclaw gateway --bind loopback --port 18789 > "${gateway_log}" 2>&1 &
     local gw_pid=$!
     echo "${gw_pid}" > "${gateway_pid_file}"
 
@@ -170,6 +170,38 @@ _start_gateway() {
 
     # Node host will be started later (after all config changes are done)
     # to avoid gateway restart (1012) killing it mid-setup.
+}
+
+_approve_pending_node_pairings() {
+    local max_attempts="${1:-5}"
+    local approved_count=0
+    local attempt
+
+    for attempt in $(seq 1 "${max_attempts}"); do
+        local device_output
+        device_output=$(openclaw devices list 2>/dev/null || echo "")
+
+        local request_ids
+        request_ids=$(echo "${device_output}" | grep -iE 'pending|request' | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' || true)
+        if [[ -z "${request_ids}" ]]; then
+            request_ids=$(echo "${device_output}" | sed -n '/^Request/,/^$/p' | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' || true)
+        fi
+
+        if [[ -n "${request_ids}" ]]; then
+            local rid
+            for rid in ${request_ids}; do
+                if openclaw devices approve "${rid}" >> "${CLAWSPARK_LOG}" 2>&1; then
+                    approved_count=$((approved_count + 1))
+                    log_info "Auto-approved device: ${rid}"
+                fi
+            done
+            break
+        fi
+
+        sleep 2
+    done
+
+    printf '%s' "${approved_count}"
 }
 
 _start_node_host() {
@@ -193,6 +225,33 @@ _start_node_host() {
     local env_file="${HOME}/.openclaw/gateway.env"
     if [[ -f "${env_file}" ]]; then set +e; set -a; source "${env_file}" 2>/dev/null; set +a; set -e; fi
 
+    if check_command systemctl && systemctl cat clawspark-nodehost.service >/dev/null 2>&1; then
+        sudo systemctl start clawspark-nodehost.service >/dev/null 2>&1 || {
+            log_warn "Node host systemd start failed. Check: sudo journalctl -u clawspark-nodehost"
+            return 0
+        }
+
+        sleep 5
+
+        local approved_count
+        approved_count=$(_approve_pending_node_pairings 5)
+        if [[ "${approved_count}" -gt 0 ]]; then
+            log_info "Restarting node host service after pairing approval..."
+            sudo systemctl restart clawspark-nodehost.service >/dev/null 2>&1 || {
+                log_warn "Node host systemd restart failed after approval. Check: sudo journalctl -u clawspark-nodehost"
+                return 0
+            }
+            sleep 3
+        fi
+
+        if sudo systemctl is-active --quiet clawspark-nodehost.service; then
+            log_success "Node host running via systemd."
+        else
+            log_warn "Node host systemd service is not active. Check: sudo journalctl -u clawspark-nodehost"
+        fi
+        return 0
+    fi
+
     nohup openclaw node run --host 127.0.0.1 --port 18789 > "${node_log}" 2>&1 &
     local node_pid=$!
     echo "${node_pid}" > "${node_pid_file}"
@@ -200,38 +259,16 @@ _start_node_host() {
     # Wait for the node to register and create a pairing request
     sleep 5
 
-    # Auto-approve pending device requests (this is a local single-user install)
-    local attempt
-    for attempt in 1 2 3; do
-        local device_output
-        device_output=$(openclaw devices list 2>/dev/null || echo "")
-
-        # Only extract UUIDs from lines that contain "pending" or "Pending"
-        # to avoid approving already-paired devices or matching non-request UUIDs
-        local request_ids
-        request_ids=$(echo "${device_output}" | grep -iE 'pending|request' | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' || true)
-        # Fallback: if no "pending" lines but there are UUIDs in a "Requests" section, try those
-        if [[ -z "${request_ids}" ]]; then
-            request_ids=$(echo "${device_output}" | sed -n '/^Request/,/^$/p' | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' || true)
-        fi
-
-        if [[ -n "${request_ids}" ]]; then
-            local rid
-            for rid in ${request_ids}; do
-                openclaw devices approve "${rid}" >> "${CLAWSPARK_LOG}" 2>&1 && \
-                    log_info "Auto-approved device: ${rid}" || true
-            done
-            # Restart node host after approval so it reconnects with proper auth
-            kill "${node_pid}" 2>/dev/null || true
-            sleep 2
-            nohup openclaw node run --host 127.0.0.1 --port 18789 > "${node_log}" 2>&1 &
-            node_pid=$!
-            echo "${node_pid}" > "${node_pid_file}"
-            sleep 3
-            break
-        fi
+    local approved_count
+    approved_count=$(_approve_pending_node_pairings 5)
+    if [[ "${approved_count}" -gt 0 ]]; then
+        kill "${node_pid}" 2>/dev/null || true
         sleep 2
-    done
+        nohup openclaw node run --host 127.0.0.1 --port 18789 > "${node_log}" 2>&1 &
+        node_pid=$!
+        echo "${node_pid}" > "${node_pid_file}"
+        sleep 3
+    fi
 
     if kill -0 "${node_pid}" 2>/dev/null; then
         log_success "Node host running (PID ${node_pid})."

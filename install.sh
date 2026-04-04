@@ -353,13 +353,8 @@ log_info "Step 19/20: Applying security"
 secure_setup
 
 # ── Start node host (after all config changes are done) ───────────────────
-# Skip if systemd already started the node host (step 16)
-if check_command systemctl && systemctl is-active --quiet clawspark-nodehost.service 2>/dev/null; then
-    log_info "Node host already running via systemd."
-else
-    log_info "Starting node host..."
-    _start_node_host || log_warn "Node host failed to start -- you can start it with: clawspark start"
-fi
+log_info "Starting node host..."
+_start_node_host || log_warn "Node host failed to start -- you can start it with: clawspark start"
 
 # ── Step 20: Verification ──────────────────────────────────────────────────
 log_info "Step 20/20: Verifying installation"

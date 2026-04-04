@@ -69,10 +69,15 @@ Type=simple
 User=${user_name}
 Environment=HOME=${user_home}
 Environment=PATH=${svc_path}
+Environment=OPENCLAW_NO_RESPAWN=1
 EnvironmentFile=-${env_file}
-ExecStart=${openclaw_bin} gateway run --bind loopback
-Restart=on-failure
-RestartSec=5
+ExecStart=${openclaw_bin} gateway --bind loopback --port 18789
+Restart=always
+RestartSec=2
+TimeoutStopSec=30
+TimeoutStartSec=90
+SuccessExitStatus=0 143
+KillMode=control-group
 StandardOutput=append:${user_home}/.clawspark/gateway.log
 StandardError=append:${user_home}/.clawspark/gateway.log
 
@@ -93,11 +98,16 @@ Type=simple
 User=${user_name}
 Environment=HOME=${user_home}
 Environment=PATH=${svc_path}
+Environment=OPENCLAW_NO_RESPAWN=1
 EnvironmentFile=-${env_file}
 ExecStartPre=/bin/sleep 3
 ExecStart=${openclaw_bin} node run --host 127.0.0.1 --port 18789
-Restart=on-failure
-RestartSec=5
+Restart=always
+RestartSec=2
+TimeoutStopSec=30
+TimeoutStartSec=90
+SuccessExitStatus=0 143
+KillMode=control-group
 StandardOutput=append:${user_home}/.clawspark/node.log
 StandardError=append:${user_home}/.clawspark/node.log
 
@@ -185,9 +195,7 @@ DBEOF
         log_warn "Gateway systemd start failed. Check: sudo journalctl -u clawspark-gateway"
     }
     sleep 3
-    sudo systemctl start clawspark-nodehost.service || {
-        log_warn "Node host systemd start failed. Check: sudo journalctl -u clawspark-nodehost"
-    }
+    log_info "Node host systemd service enabled; pairing bootstrap will start it after installation."
     if [[ -n "${clawmetry_bin}" ]]; then
         sudo systemctl start clawspark-dashboard.service || {
             log_warn "Dashboard systemd start failed. Check: sudo journalctl -u clawspark-dashboard"
@@ -203,10 +211,10 @@ DBEOF
         log_warn "Gateway not running via systemd."
         all_ok=false
     fi
-    if sudo systemctl is-active --quiet clawspark-nodehost.service; then
-        log_success "Node host running via systemd."
+    if sudo systemctl is-enabled --quiet clawspark-nodehost.service 2>/dev/null; then
+        log_success "Node host systemd service enabled."
     else
-        log_warn "Node host not running via systemd."
+        log_warn "Node host systemd service is not enabled."
         all_ok=false
     fi
     if [[ -n "${clawmetry_bin}" ]]; then

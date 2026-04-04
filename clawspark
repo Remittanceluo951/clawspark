@@ -1815,7 +1815,7 @@ _cmd_restart() {
         sleep 2
 
         if check_command openclaw; then
-            nohup openclaw gateway run --bind loopback > "${CLAWSPARK_DIR}/gateway.log" 2>&1 &
+            nohup openclaw gateway --bind loopback --port 18789 > "${CLAWSPARK_DIR}/gateway.log" 2>&1 &
             echo $! > "${CLAWSPARK_DIR}/gateway.pid"
             log_success "Gateway started (PID $!)."
         else
@@ -1885,7 +1885,7 @@ _cmd_start() {
         if [[ -f "${CLAWSPARK_DIR}/gateway.pid" ]] && kill -0 "$(cat "${CLAWSPARK_DIR}/gateway.pid" 2>/dev/null)" 2>/dev/null; then
             log_info "Gateway already running."
         elif check_command openclaw; then
-            nohup openclaw gateway run --bind loopback > "${CLAWSPARK_DIR}/gateway.log" 2>&1 &
+            nohup openclaw gateway --bind loopback --port 18789 > "${CLAWSPARK_DIR}/gateway.log" 2>&1 &
             echo $! > "${CLAWSPARK_DIR}/gateway.pid"
             log_success "Gateway started (PID $!)."
             sleep 3
