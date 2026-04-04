@@ -302,15 +302,16 @@ bash tests/run.sh
 
 ## npm Package
 
-[![npm version](https://img.shields.io/npm/v/clawspark.svg)](https://www.npmjs.com/package/clawspark)
+[![npm version](https://img.shields.io/npm/v/%40hitechclaw%2Fclawspark.svg)](https://www.npmjs.com/package/@hitechclaw/clawspark)
 [![CI](https://github.com/thanhan92-f1/clawspark/actions/workflows/ci.yml/badge.svg)](https://github.com/thanhan92-f1/clawspark/actions/workflows/ci.yml)
 [![Publish to npm](https://github.com/thanhan92-f1/clawspark/actions/workflows/publish-npm.yml/badge.svg)](https://github.com/thanhan92-f1/clawspark/actions/workflows/publish-npm.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/thanhan92-f1/clawspark)](https://github.com/thanhan92-f1/clawspark/releases)
 
-`clawspark` can also be distributed as an npm package for installing the CLI entrypoint:
+`@hitechclaw/clawspark` can also be distributed as an npm package for installing the CLI entrypoint.
+The installed command remains `clawspark`:
 
 ```bash
-npm install -g clawspark
+npm install -g @hitechclaw/clawspark
 ```
 
 Local package validation:
@@ -328,7 +329,7 @@ Example setup:
 2. Make sure the token belongs to npm user `hitechclaw`.
 3. Make sure the tag matches `package.json` version exactly, for example `v2.0.0` for version `2.0.0`.
 4. Push the tag.
-5. GitHub Actions validates metadata, checks the packed tarball, verifies the npm account, and publishes `clawspark` to npmjs.com with provenance.
+5. GitHub Actions validates metadata, checks the packed tarball, verifies the npm account, and publishes `@hitechclaw/clawspark` to npmjs.com with provenance.
 6. GitHub Actions also creates a GitHub Release and attaches the generated npm tarball.
 
 Example release flow:

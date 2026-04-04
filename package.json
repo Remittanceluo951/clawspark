@@ -4,7 +4,7 @@
   "description": "One-command OpenClaw installer and CLI for local, CPU-first, and API-backed AI agent deployments for strictly non-commercial use.",
   "author": "hitechclaw",
   "license": "SEE LICENSE IN LICENSE",
-  "homepage": "https://github.com/thanhan92-f1/clawspark#readme",
+  "homepage": "https://clawspark.hitechclaw.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/thanhan92-f1/clawspark.git"
