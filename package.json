@@ -1,5 +1,5 @@
 {
-  "name": "clawspark",
+  "name": "@hitechclaw/clawspark",
   "version": "2.0.0",
   "description": "One-command OpenClaw installer and CLI for local, CPU-first, and API-backed AI agent deployments.",
   "author": "hitechclaw",
@@ -23,7 +23,7 @@
     "api-gateway"
   ],
   "bin": {
-    "clawspark": "./clawspark"
+    "clawspark": "clawspark"
   },
   "files": [
     "clawspark",
