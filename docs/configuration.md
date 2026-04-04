@@ -190,6 +190,13 @@ Run the v2 installer:
 bash v2/install.sh
 ```
 
+Additional v2 flags:
+
+```bash
+--messaging=whatsapp|telegram|both|skip
+--air-gap
+```
+
 Example API-first install:
 
 ```bash
@@ -200,6 +207,19 @@ Example CPU-first local install:
 
 ```bash
 bash v2/install.sh --runtime=local-cpu --provider=ollama
+```
+
+v2 state is stored in `~/.clawspark-v2`, while OpenClaw runtime state stays in `~/.openclaw`.
+
+The v2 skill seed file is `v2/configs/skills.yaml`. During install it is copied to `~/.clawspark-v2/skills.yaml` and consumed by the reused legacy skill installer.
+
+For API-backed modes, `~/.openclaw/gateway.env` can contain values such as:
+
+```bash
+OPENAI_API_KEY=...
+OPENAI_BASE_URL=https://api.openai.com/v1
+CLAWSPARK_V2_RUNTIME_MODE=api-only
+CLAWSPARK_V2_PRIMARY_PROVIDER=openai
 ```
 
 Naming note: the framework used by clawspark is **OpenClaw**. `Nemotron` is only one possible model family, not the platform name.

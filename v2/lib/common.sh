@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CLAWSPARK_V2_DIR="${HOME}/.clawspark-v2"
-CLAWSPARK_V2_LOG="${CLAWSPARK_V2_DIR}/install.log"
+CLAWSPARK_DIR="${CLAWSPARK_DIR:-${HOME}/.clawspark-v2}"
+CLAWSPARK_LOG="${CLAWSPARK_LOG:-${CLAWSPARK_DIR}/install.log}"
+CLAWSPARK_V2_DIR="${CLAWSPARK_DIR}"
+CLAWSPARK_V2_LOG="${CLAWSPARK_LOG}"
 CLAWSPARK_DEFAULTS="${CLAWSPARK_DEFAULTS:-false}"
 
 if [[ -t 1 ]] && command -v tput &>/dev/null && [[ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]]; then
@@ -29,8 +31,8 @@ _ts() { date '+%H:%M:%S'; }
 
 _log_to_file() {
     local level="$1"; shift
-    mkdir -p "${CLAWSPARK_V2_DIR}"
-    printf '[%s] [%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "${level}" "$*" >> "${CLAWSPARK_V2_LOG}" 2>/dev/null || true
+    mkdir -p "${CLAWSPARK_DIR}"
+    printf '[%s] [%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "${level}" "$*" >> "${CLAWSPARK_LOG}" 2>/dev/null || true
 }
 
 log_info() {
@@ -192,6 +194,28 @@ hr() {
     printf '%s%*s%s\n' "${BLUE}" "${cols}" '' "${RESET}" | tr ' ' '─'
 }
 
+print_box() {
+    local lines=("$@")
+    local max_len=0
+    local line
+
+    for line in "${lines[@]}"; do
+        local stripped
+        stripped=$(printf '%s' "${line}" | sed 's/\x1b\[[0-9;]*m//g')
+        (( ${#stripped} > max_len )) && max_len=${#stripped}
+    done
+
+    local pad=$(( max_len + 2 ))
+    printf '%s┌%s┐%s\n' "${BLUE}" "$(printf '─%.0s' $(seq 1 "${pad}"))" "${RESET}"
+    for line in "${lines[@]}"; do
+        local stripped
+        stripped=$(printf '%s' "${line}" | sed 's/\x1b\[[0-9;]*m//g')
+        local spaces=$(( max_len - ${#stripped} ))
+        printf '%s│%s %s%*s %s│%s\n' "${BLUE}" "${RESET}" "${line}" "${spaces}" '' "${BLUE}" "${RESET}"
+    done
+    printf '%s└%s┘%s\n' "${BLUE}" "$(printf '─%.0s' $(seq 1 "${pad}"))" "${RESET}"
+}
+
 mask_value() {
     local value="$1"
     if [[ -z "${value}" ]]; then
@@ -224,4 +248,38 @@ PY
     else
         printf '%s=%s\n' "${key}" "${value}" >> "${file}"
     fi
+}
+
+_parse_enabled_skills() {
+    local skills_file="$1"
+    [[ -f "${skills_file}" && -r "${skills_file}" ]] || return 1
+    local in_enabled=false
+
+    while IFS= read -r line; do
+        [[ "${line}" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line// }" ]] && continue
+
+        if [[ "${line}" =~ enabled:[[:space:]]*$ ]]; then
+            in_enabled=true
+            continue
+        fi
+        if ${in_enabled} && [[ "${line}" =~ ^[[:space:]]{0,3}[a-zA-Z] ]] && [[ ! "${line}" =~ ^[[:space:]]*- ]]; then
+            in_enabled=false
+            continue
+        fi
+        if ${in_enabled} && [[ "${line}" =~ ^[[:space:]]*-[[:space:]]+name:[[:space:]]+(.*) ]]; then
+            local slug="${BASH_REMATCH[1]}"
+            slug="${slug## }"
+            slug="${slug%% }"
+            echo "${slug}"
+            continue
+        fi
+        if ${in_enabled} && [[ "${line}" =~ ^[[:space:]]*-[[:space:]]+(.*) ]]; then
+            local slug="${BASH_REMATCH[1]}"
+            slug="${slug## }"
+            slug="${slug%% }"
+            [[ "${slug}" =~ ^[a-zA-Z]+: ]] && continue
+            echo "${slug}"
+        fi
+    done < "${skills_file}"
 }

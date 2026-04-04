@@ -35,9 +35,13 @@ Initial providers:
 - `v2/lib/select-runtime.sh` — runtime, provider, and model selection.
 - `v2/lib/setup-provider.sh` — local or API backend preparation.
 - `v2/lib/setup-openclaw.sh` — provider-aware OpenClaw config.
+- `v2/lib/setup-extras.sh` — reuses legacy skill, voice, messaging, and security modules.
 - `v2/lib/verify.sh` — validation for both local and API modes.
 
 ## Notes
 
-This is a focused v2 foundation, not a full replacement for the current root installer yet.
-Messaging, dashboard, skills, sandbox, and systemd can be wired in after provider mode is stabilized.
+`v2` now reuses the stable legacy modules for skills, voice, messaging, and security hardening.
+
+Runtime state is kept under `~/.clawspark-v2`, while OpenClaw configuration remains under `~/.openclaw`.
+
+The root `clawspark` CLI is not yet v2-aware, so `v2` should still be treated as a preview track.

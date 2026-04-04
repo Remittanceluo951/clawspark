@@ -46,6 +46,21 @@ Supported provider modes in `v2`:
 - `openrouter`
 - `google`
 
+`v2` now also reuses the stable installer modules for:
+
+- default skills from `v2/configs/skills.yaml`
+- local Whisper voice setup
+- WhatsApp or Telegram onboarding
+- security hardening and token generation
+
+Useful v2 examples:
+
+```bash
+bash v2/install.sh --runtime=local-cpu --provider=ollama --messaging=skip
+bash v2/install.sh --runtime=api-only --provider=openai --api-key=<your-key>
+bash v2/install.sh --runtime=hybrid --provider=openrouter --messaging=telegram
+```
+
 This does **not** replace the main installer yet. It is a separate v2 track for CPU and external API support.
 
 ## What is this?

@@ -8,6 +8,8 @@ FLAG_RUNTIME_MODE=""
 FLAG_PROVIDER=""
 FLAG_API_KEY=""
 FLAG_MODEL=""
+FLAG_MESSAGING=""
+AIR_GAP="false"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -26,6 +28,12 @@ while [[ $# -gt 0 ]]; do
         --model=*)
             FLAG_MODEL="${1#*=}"
             shift ;;
+        --messaging=*)
+            FLAG_MESSAGING="${1#*=}"
+            shift ;;
+        --air-gap|--airgap)
+            AIR_GAP="true"
+            shift ;;
         -h|--help)
             cat <<HELP
 Usage: v2/install.sh [OPTIONS]
@@ -36,6 +44,8 @@ Options:
   --provider=<name>       ollama | openai | anthropic | openrouter | google
   --api-key=<key>         Provider API key for API modes
   --model=<id>            Override default model ID
+    --messaging=<type>      whatsapp | telegram | both | skip
+    --air-gap               Enable outbound network lock-down after setup
   -h, --help              Show this help
 HELP
             exit 0 ;;
@@ -45,13 +55,17 @@ HELP
     esac
 done
 
+CLAWSPARK_REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
 export CLAWSPARK_DEFAULTS FLAG_RUNTIME_MODE FLAG_PROVIDER FLAG_API_KEY FLAG_MODEL
+export FLAG_MESSAGING AIR_GAP CLAWSPARK_REPO_DIR
 
 source "${SCRIPT_DIR}/lib/common.sh"
 source "${SCRIPT_DIR}/lib/detect-hardware.sh"
 source "${SCRIPT_DIR}/lib/select-runtime.sh"
 source "${SCRIPT_DIR}/lib/setup-provider.sh"
 source "${SCRIPT_DIR}/lib/setup-openclaw.sh"
+source "${SCRIPT_DIR}/lib/setup-extras.sh"
 source "${SCRIPT_DIR}/lib/verify.sh"
 
 mkdir -p "${CLAWSPARK_V2_DIR}"
@@ -78,6 +92,7 @@ fi
 collect_provider_credentials_v2
 setup_provider_v2
 setup_openclaw_v2
+setup_v2_extras
 verify_v2_installation
 
 printf '\n'
