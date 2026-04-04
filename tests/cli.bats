@@ -231,6 +231,77 @@ ENV
         [[ "$output" == *"https://your-provider.example.com/v1"* ]]
 }
 
+    @test "provider doctor succeeds for healthy custom provider config" {
+        mkdir -p "${HOME}/.openclaw" "${TEST_TEMP_DIR}/bin"
+
+        cat > "${HOME}/.openclaw/gateway.env" <<'ENV'
+    CLAWSPARK_V2_RUNTIME_MODE=api-only
+    CLAWSPARK_V2_PRIMARY_PROVIDER=custom
+    CUSTOM_AI_PROVIDER_NAME=My Gateway
+    CUSTOM_AI_BASE_URL=https://llm.example.com/v1
+    CUSTOM_AI_API_KEY=secret-token
+    ENV
+
+        cat > "${HOME}/.openclaw/openclaw.json" <<'JSON'
+    {
+        "agents": {
+        "defaults": {
+            "model": "openai/my-model"
+        }
+        },
+        "clawsparkV2": {
+        "primaryProvider": "custom",
+        "customProviderName": "My Gateway"
+        }
+    }
+    JSON
+
+        cat > "${TEST_TEMP_DIR}/bin/curl" <<'SH'
+    #!/usr/bin/env bash
+    printf '401'
+    SH
+        chmod +x "${TEST_TEMP_DIR}/bin/curl"
+
+        run bash -c "export HOME='${TEST_TEMP_DIR}'; export PATH='${TEST_TEMP_DIR}/bin:'\"\$PATH\"; bash '${CLAWSPARK_BIN}' provider doctor"
+        [ "$status" -eq 0 ]
+        [[ "$output" == *"Provider diagnostics passed"* ]]
+        [[ "$output" == *"responding (HTTP 401)"* ]]
+    }
+
+    @test "provider doctor fails for missing remote api key" {
+        mkdir -p "${HOME}/.openclaw" "${TEST_TEMP_DIR}/bin"
+
+        cat > "${HOME}/.openclaw/gateway.env" <<'ENV'
+    CLAWSPARK_V2_RUNTIME_MODE=api-only
+    CLAWSPARK_V2_PRIMARY_PROVIDER=openai
+    OPENAI_BASE_URL=https://api.openai.com/v1
+    ENV
+
+        cat > "${HOME}/.openclaw/openclaw.json" <<'JSON'
+    {
+        "agents": {
+        "defaults": {
+            "model": "openai/gpt-4.1-mini"
+        }
+        },
+        "clawsparkV2": {
+        "primaryProvider": "openai"
+        }
+    }
+    JSON
+
+        cat > "${TEST_TEMP_DIR}/bin/curl" <<'SH'
+    #!/usr/bin/env bash
+    printf '401'
+    SH
+        chmod +x "${TEST_TEMP_DIR}/bin/curl"
+
+        run bash -c "export HOME='${TEST_TEMP_DIR}'; export PATH='${TEST_TEMP_DIR}/bin:'\"\$PATH\"; bash '${CLAWSPARK_BIN}' provider doctor"
+        [ "$status" -eq 1 ]
+        [[ "$output" == *"API key is missing (OPENAI_API_KEY)"* ]]
+        [[ "$output" == *"Provider diagnostics found issues"* ]]
+    }
+
 @test "provider set-custom updates gateway env and openclaw config" {
         mkdir -p "${HOME}/.openclaw"
 
@@ -359,5 +430,31 @@ JSON
         run bash -c "grep -q '^OLLAMA_BASE_URL=http://127.0.0.1:11434/v1$' '${HOME}/.openclaw/gateway.env'"
         [ "$status" -eq 0 ]
         run bash -c "grep -q '^OLLAMA_API_KEY=ollama$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+}
+
+@test "provider use without args uses current provider in defaults mode" {
+        mkdir -p "${HOME}/.openclaw"
+
+        cat > "${HOME}/.openclaw/openclaw.json" <<'JSON'
+{
+    "agents": {
+        "defaults": {
+            "model": "openai/gpt-4.1-mini"
+        }
+    },
+    "clawsparkV2": {
+        "primaryProvider": "openai"
+    }
+}
+JSON
+
+        run bash -c "export HOME='${TEST_TEMP_DIR}'; export CLAWSPARK_DEFAULTS='true'; bash '${CLAWSPARK_BIN}' provider use"
+        [ "$status" -eq 0 ]
+        [[ "$output" == *"Provider updated: openai"* ]]
+
+        run bash -c "grep -q '^CLAWSPARK_V2_PRIMARY_PROVIDER=openai$' '${HOME}/.openclaw/gateway.env'"
+        [ "$status" -eq 0 ]
+        run bash -c "grep -q '^OPENAI_BASE_URL=https://api.openai.com/v1$' '${HOME}/.openclaw/gateway.env'"
         [ "$status" -eq 0 ]
 }

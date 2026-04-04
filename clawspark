@@ -32,7 +32,7 @@ _detect_clawspark_home() {
 
 CLAWSPARK_DIR="$(_detect_clawspark_home)"
 CLAWSPARK_LOG="${CLAWSPARK_DIR}/install.log"
-CLAWSPARK_DEFAULTS="false"
+CLAWSPARK_DEFAULTS="${CLAWSPARK_DEFAULTS:-false}"
 CLAWSPARK_PROFILE_NAME="standard"
 [[ "${CLAWSPARK_DIR}" == "${CLAWSPARK_V2_HOME}" ]] && CLAWSPARK_PROFILE_NAME="v2"
 
@@ -199,6 +199,53 @@ _provider_default_base_url() {
         fi
     done < <(_provider_catalog_rows)
     return 1
+}
+
+_provider_default_index() {
+    if [[ "${CLAWSPARK_DEFAULTS}" == "true" ]]; then
+        printf '%s' "$(_provider_default_index_from_current)"
+        return 0
+    fi
+
+    _provider_default_index_from_current
+}
+
+_provider_default_index_from_current() {
+    local provider="${1:-$(_current_provider)}"
+    local options=("ollama" "openai" "anthropic" "openrouter" "google" "custom")
+    local i
+
+    for i in $(seq 0 $(( ${#options[@]} - 1 ))); do
+        if [[ "${options[$i]}" == "${provider}" ]]; then
+            printf '%s' "${i}"
+            return 0
+        fi
+    done
+
+    printf '0'
+}
+
+_prompt_text_value() {
+    local question="$1"
+    local default_value="${2:-}"
+    local value=""
+
+    if [[ "${CLAWSPARK_DEFAULTS}" == "true" ]]; then
+        printf '%s' "${default_value}"
+        return 0
+    fi
+
+    if [[ -n "${default_value}" ]]; then
+        printf '\n%s%s [%s]:%s ' "${BOLD}" "${question}" "${default_value}" "${RESET}" >/dev/tty
+    else
+        printf '\n%s%s:%s ' "${BOLD}" "${question}" "${RESET}" >/dev/tty
+    fi
+
+    read -r value </dev/tty || value=""
+    if [[ -z "${value}" ]]; then
+        value="${default_value}"
+    fi
+    printf '%s' "${value}"
 }
 
 _current_provider() {
@@ -391,6 +438,109 @@ _cmd_provider_list() {
     printf '  Use %sclawspark provider set <provider> ...%s to switch providers.\n\n' "${CYAN}" "${RESET}"
 }
 
+_cmd_provider_doctor() {
+    local provider provider_display base_url api_key_env api_key_value model_ref endpoint_state
+    local has_issue=0
+
+    provider="$(_current_provider)"
+    provider_display="$(_current_provider_display)"
+    base_url="$(_current_provider_base_url 2>/dev/null || true)"
+    api_key_env="$(_provider_api_key_env_name "${provider}" 2>/dev/null || true)"
+    model_ref="$(_current_model_ref)"
+
+    if [[ -n "${api_key_env}" ]]; then
+        api_key_value="${!api_key_env:-}"
+    else
+        api_key_value=""
+    fi
+
+    printf '\n%s%s clawspark provider doctor%s\n\n' "${BOLD}" "${BLUE}" "${RESET}"
+    printf '  %-22s %s\n' "Provider" "${provider_display}"
+    printf '  %-22s %s\n' "Model" "${model_ref:-not configured}"
+
+    if [[ -n "${base_url}" ]]; then
+        printf '  %-22s %s\n' "Base URL" "${base_url}"
+        log_success "Base URL is configured"
+    else
+        printf '  %-22s %s\n' "Base URL" "missing"
+        log_warn "Base URL is not configured"
+        has_issue=1
+    fi
+
+    if [[ "${provider}" == "custom" ]]; then
+        local custom_label
+        custom_label="$(_current_custom_provider_label 2>/dev/null || true)"
+        if [[ -n "${custom_label}" ]]; then
+            log_success "Custom provider label is set: ${custom_label}"
+        else
+            log_warn "Custom provider label is missing"
+            has_issue=1
+        fi
+    fi
+
+    if [[ -n "${api_key_env}" ]]; then
+        if [[ -n "${api_key_value}" ]]; then
+            log_success "API key is configured via ${api_key_env}"
+        elif [[ "${provider}" == "ollama" ]]; then
+            log_warn "OLLAMA_API_KEY is missing; local mode usually works best with OLLAMA_API_KEY=ollama"
+        else
+            log_warn "API key is missing (${api_key_env})"
+            has_issue=1
+        fi
+    fi
+
+    case "${provider}" in
+        ollama)
+            if [[ -n "${model_ref}" && "${model_ref}" != ollama/* ]]; then
+                log_warn "Model ref does not match provider. Expected ollama/* but found ${model_ref}"
+                has_issue=1
+            else
+                log_success "Model ref matches provider"
+            fi
+            ;;
+        anthropic)
+            if [[ -n "${model_ref}" && "${model_ref}" != anthropic/* ]]; then
+                log_warn "Model ref does not match provider. Expected anthropic/* but found ${model_ref}"
+                has_issue=1
+            else
+                log_success "Model ref matches provider"
+            fi
+            ;;
+        openai|openrouter|google|custom)
+            if [[ -n "${model_ref}" && "${model_ref}" != openai/* ]]; then
+                log_warn "Model ref does not match provider. Expected openai/* but found ${model_ref}"
+                has_issue=1
+            else
+                log_success "Model ref matches provider"
+            fi
+            ;;
+    esac
+
+    if [[ "${provider}" != "ollama" ]]; then
+        endpoint_state="$(_probe_remote_endpoint_status "${base_url}")"
+        printf '  %-22s %s\n' "Endpoint probe" "${endpoint_state}"
+
+        case "${endpoint_state}" in
+            responding*|skipped|curl\ unavailable)
+                log_success "Endpoint probe completed: ${endpoint_state}"
+                ;;
+            *)
+                log_warn "Endpoint probe reported: ${endpoint_state}"
+                has_issue=1
+                ;;
+        esac
+    fi
+
+    printf '\n'
+    if [[ ${has_issue} -eq 0 ]]; then
+        log_success "Provider diagnostics passed"
+        return 0
+    fi
+
+    log_warn "Provider diagnostics found issues"
+    return 1
+}
+
 _cmd_provider_set_remote() {
     local provider="$1"
     shift || true
@@ -494,15 +644,17 @@ _cmd_provider_use() {
     local provider="${1:-}"
     shift || true
 
-    [[ -z "${provider}" ]] && {
-        log_error "Usage: clawspark provider use <ollama|openai|anthropic|openrouter|google|custom> [options]"
-        exit 1
-    }
-
     local base_url=""
     local api_key=""
     local provider_name=""
     local set_args=()
+
+    if [[ -z "${provider}" ]]; then
+        local provider_options=("ollama" "openai" "anthropic" "openrouter" "google" "custom")
+        local default_idx
+        default_idx="$(_provider_default_index)"
+        provider=$(prompt_choice "Choose provider" provider_options "${default_idx}")
+    fi
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -537,10 +689,10 @@ _cmd_provider_use() {
 
     if [[ -z "${base_url}" ]]; then
         if [[ "${provider}" == "custom" ]]; then
-            log_error "Custom provider requires --base-url and --name with clawspark provider use custom"
-            exit 1
+            base_url="$(_prompt_text_value "Enter custom provider base URL" "$(_current_provider_base_url 2>/dev/null || _provider_default_base_url custom || true)")"
+        else
+            base_url="$(_provider_default_base_url "${provider}" 2>/dev/null || true)"
         fi
-        base_url="$(_provider_default_base_url "${provider}" 2>/dev/null || true)"
     fi
 
     if [[ -z "${base_url}" ]]; then
@@ -549,7 +701,15 @@ _cmd_provider_use() {
     fi
 
     if [[ "${provider}" == "custom" && -z "${provider_name}" ]]; then
-        log_error "Custom provider requires --name with clawspark provider use custom"
+        provider_name="$(_prompt_text_value "Enter custom provider name" "$(_current_custom_provider_label 2>/dev/null || true)")"
+        if [[ -z "${provider_name}" ]]; then
+            log_error "Custom provider requires --name with clawspark provider use custom"
+            exit 1
+        fi
+    fi
+
+    if [[ "${provider}" == "custom" && ! "${base_url}" =~ ^https?:// ]]; then
+        log_error "Custom provider requires a valid http:// or https:// base URL"
         exit 1
     fi
 
@@ -591,6 +751,9 @@ _cmd_provider() {
         list)
             _cmd_provider_list
             ;;
+        doctor)
+            _cmd_provider_doctor
+            ;;
         show)
             _cmd_provider_show
             ;;
@@ -611,7 +774,7 @@ _cmd_provider() {
             ;;
         *)
             log_error "Unknown provider subcommand: ${subcmd}"
-            printf '  Usage: clawspark provider [show|list|set <provider> [options]|use <provider> [options]|set-custom --name <label> --base-url <url> [--api-key <key>]]\n'
+            printf '  Usage: clawspark provider [show|list|doctor|set <provider> [options]|use [provider] [options]|set-custom --name <label> --base-url <url> [--api-key <key>]]\n'
             exit 1
             ;;
     esac
@@ -680,8 +843,9 @@ ${BOLD}Commands:${RESET}
   ${GREEN}model vision${RESET}         Set or show the vision model
     ${GREEN}provider${RESET}            Show current provider configuration
     ${GREEN}provider list${RESET}       Show supported provider catalog
+    ${GREEN}provider doctor${RESET}     Validate current provider setup
     ${GREEN}provider set <p> ...${RESET} Update remote provider settings
-    ${GREEN}provider use <p>${RESET}    Switch provider using default endpoints
+    ${GREEN}provider use [p]${RESET}  Switch provider using default endpoints
     ${GREEN}provider set-custom ...${RESET} Update custom provider settings
   ${GREEN}tools${RESET}               List agent tools and their status
   ${GREEN}tools enable <name>${RESET}  Enable an additional tool (e.g. email, browser)
