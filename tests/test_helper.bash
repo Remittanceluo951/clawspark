@@ -8,7 +8,7 @@ _find_project_root() {
         (cd "${candidate}" && pwd)
         return
     fi
-    for try in "/tmp/claw-spark" "/private/tmp/claw-spark"; do
+    for try in "/tmp/clawspark" "/private/tmp/clawspark"; do
         if [ -f "${try}/clawspark" ]; then
             echo "${try}"
             return
