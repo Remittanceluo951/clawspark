@@ -14,6 +14,7 @@
   <a href="docs/configuration.md">Configuration</a> &middot;
   <a href="SECURITY.md">Security</a> &middot;
   <a href="NOTICE">License Notice</a> &middot;
+  <a href="COMMERCIAL-LICENSE.md">Commercial Licensing</a> &middot;
   <a href="CONTRIBUTING.md">Contributing Guide</a> &middot;
   <a href="CHANGELOG.md">Changelog</a> &middot;
   <a href="#contributing">Contributing</a>
@@ -402,7 +403,8 @@ testing, or evaluation.
 Only the repository owner / copyright holder may commercialize this project
 or grant commercial licenses.
 
-See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+See [LICENSE](LICENSE), [NOTICE](NOTICE), and
+[COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md).
 
 ---
 

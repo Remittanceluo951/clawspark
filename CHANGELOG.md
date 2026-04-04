@@ -14,6 +14,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Explicit prohibition on commercialization, commercial consulting, and other
     for-profit use by third parties without separate permission.
 - `NOTICE` file summarizing the repository's non-commercial-use terms.
+- `COMMERCIAL-LICENSE.md` explaining that commercial rights require a
+    separate written agreement.
 - npm packaging metadata via `package.json` and `.npmignore`.
 - GitHub Actions workflow for publishing public npm releases from version tags.
 - Release validation that checks tag/version alignment before npm publish.
