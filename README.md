@@ -382,11 +382,17 @@ Allowed without separate permission:
 
 Not allowed without prior written permission:
 
+- product commercialization of this repository or derivative offerings
 - business or company use
 - consulting or implementation services
+- third-party service delivery or client work
 - internal use inside a commercial organization
 - paid support, training, integration, or managed services
 - resale, sublicensing, hosting, SaaS, bundling, or monetization
+
+`Personal use` means use by an individual for their own private,
+non-commercial purposes only. Use for an employer, client, company,
+organization, or other third party is not personal use.
 
 Only the repository owner / copyright holder may commercialize this project
 or grant commercial licenses.

@@ -10,6 +10,10 @@ distributed, and commercially licensed by the repository owner/copyright
 holder. Third parties do not receive commercial rights unless separately
 authorized in writing by the copyright holder.
 
+Do not represent this repository as approved for commercial deployment,
+third-party consulting, client delivery, or product commercialization unless
+you have explicit written authorization from the copyright holder.
+
 ## Development Workflow
 
 1. create a branch from `main`

@@ -22,11 +22,15 @@ You may not, without prior written permission from the copyright holder:
 
 - sell, license, sublicense, lease, host, distribute, or otherwise monetize
 	the Software;
+- commercialize the Software, in whole or in part, whether directly or
+	indirectly;
 - use the Software in or for any business, company, enterprise, agency,
 	organization, startup, or other commercial operation;
 - use the Software to provide consulting, integration, implementation,
 	managed services, outsourcing, support services, training services, or any
 	other service to clients or third parties;
+- use the Software for any third-party commercial engagement, client work,
+	vendor delivery, agency delivery, contract work, or billable activity;
 - use the Software for any revenue-generating activity, commercial advantage,
 	production workload, paid proof-of-concept, internal commercial workflow,
 	or customer-facing offering;
@@ -34,8 +38,8 @@ You may not, without prior written permission from the copyright holder:
 	subscription service, marketplace listing, or hosted platform; or
 - authorize any third party to do any of the above.
 
-For clarity, business use, consulting use, organizational use, and all other
-commercial use are forbidden.
+For clarity, third-party commercialization, consulting for third parties,
+business use, organizational use, and all other commercial use are forbidden.
 
 3. Exclusive Commercial Rights Reservation
 
@@ -53,6 +57,11 @@ purposes, you must:
 	portions of the Software; and
 - clearly state that the Software is licensed for personal and non-commercial
 	use only.
+
+Personal use means use by a natural person for that person's own private,
+non-commercial purposes only. Personal use does not include use on behalf of
+any company, client, employer, institution, organization, or other third
+party.
 
 5. Termination
 

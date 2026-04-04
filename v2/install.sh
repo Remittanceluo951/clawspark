@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# License: personal-use only. Commercialization, third-party consulting,
+# client work, and other commercial use are prohibited without prior written
+# permission from Nguyen Thanh An by Pho Tue SoftWare Solutions JSC. See
+# ../LICENSE and ../NOTICE.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
