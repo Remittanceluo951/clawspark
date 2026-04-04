@@ -63,6 +63,14 @@ bash v2/install.sh --runtime=hybrid --provider=openrouter --messaging=telegram
 
 This does **not** replace the main installer yet. It is a separate v2 track for CPU and external API support.
 
+When only `v2` is installed, the `clawspark` CLI now reads state from `~/.clawspark-v2` automatically.
+If both tracks exist, select explicitly with:
+
+```bash
+CLAWSPARK_PROFILE=v2 clawspark status
+CLAWSPARK_PROFILE=standard clawspark status
+```
+
 ## What is this?
 
 [OpenClaw](https://github.com/openclaw/openclaw) is the most popular open-source AI agent (340K+ stars). **clawspark** gets it running on your NVIDIA hardware in one command. Fully local. Fully private. Your data never leaves your machine.

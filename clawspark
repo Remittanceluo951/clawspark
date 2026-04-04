@@ -3,9 +3,38 @@
 # Installed to /usr/local/bin/clawspark by install.sh.
 set -euo pipefail
 
-CLAWSPARK_DIR="${HOME}/.clawspark"
+CLAWSPARK_DEFAULT_HOME="${HOME}/.clawspark"
+CLAWSPARK_V2_HOME="${HOME}/.clawspark-v2"
+
+_detect_clawspark_home() {
+    if [[ -n "${CLAWSPARK_HOME:-}" ]]; then
+        printf '%s' "${CLAWSPARK_HOME}"
+        return 0
+    fi
+
+    case "${CLAWSPARK_PROFILE:-}" in
+        v2)
+            printf '%s' "${CLAWSPARK_V2_HOME}"
+            return 0
+            ;;
+        standard|v1)
+            printf '%s' "${CLAWSPARK_DEFAULT_HOME}"
+            return 0
+            ;;
+    esac
+
+    if [[ -d "${CLAWSPARK_V2_HOME}" && ! -d "${CLAWSPARK_DEFAULT_HOME}" ]]; then
+        printf '%s' "${CLAWSPARK_V2_HOME}"
+    else
+        printf '%s' "${CLAWSPARK_DEFAULT_HOME}"
+    fi
+}
+
+CLAWSPARK_DIR="$(_detect_clawspark_home)"
 CLAWSPARK_LOG="${CLAWSPARK_DIR}/install.log"
 CLAWSPARK_DEFAULTS="false"
+CLAWSPARK_PROFILE_NAME="standard"
+[[ "${CLAWSPARK_DIR}" == "${CLAWSPARK_V2_HOME}" ]] && CLAWSPARK_PROFILE_NAME="v2"
 
 # ── Source common helpers ───────────────────────────────────────────────────
 _load_common() {
@@ -28,6 +57,46 @@ _load_common() {
 }
 
 _load_common
+
+_current_model_ref() {
+    openclaw config get agents.defaults.model 2>/dev/null | tr -d '"' || true
+}
+
+_current_provider() {
+    if [[ -n "${CLAWSPARK_V2_PRIMARY_PROVIDER:-}" ]]; then
+        printf '%s' "${CLAWSPARK_V2_PRIMARY_PROVIDER}"
+        return 0
+    fi
+
+    local model_ref
+    model_ref="$(_current_model_ref)"
+    case "${model_ref}" in
+        ollama/*) printf 'ollama' ;;
+        anthropic/*) printf 'anthropic' ;;
+        openai/*) printf 'openai' ;;
+        *) printf 'ollama' ;;
+    esac
+}
+
+_uses_local_ollama() {
+    [[ "$(_current_provider)" == "ollama" ]]
+}
+
+_normalize_model_ref() {
+    local model="$1"
+    local provider="${2:-$(_current_provider)}"
+
+    if [[ "${model}" == */* ]]; then
+        printf '%s' "${model}"
+        return 0
+    fi
+
+    case "${provider}" in
+        openrouter|google|openai) printf 'openai/%s' "${model}" ;;
+        anthropic) printf 'anthropic/%s' "${model}" ;;
+        *) printf 'ollama/%s' "${model}" ;;
+    esac
+}
 
 # ── Source sandbox commands ────────────────────────────────────────────────
 _load_sandbox_commands() {
@@ -172,6 +241,10 @@ _source_gateway_env() {
             fi
         done < "${env_file}"
     fi
+
+    if [[ -z "${CLAWSPARK_PROFILE:-}" && -n "${CLAWSPARK_V2_RUNTIME_MODE:-}" ]]; then
+        CLAWSPARK_PROFILE_NAME="v2"
+    fi
 }
 
 _wait_for_ollama() {
@@ -203,20 +276,30 @@ _detect_systemd() {
 _cmd_status() {
     printf '\n%s%s clawspark status%s\n\n' "${BOLD}" "${BLUE}" "${RESET}"
 
-    # Ollama
-    if curl -sf http://127.0.0.1:11434/ &>/dev/null; then
-        printf '  %s✓%s Ollama            running\n' "${GREEN}" "${RESET}"
-    else
-        printf '  %s✗%s Ollama            not running\n' "${RED}" "${RESET}"
-    fi
+    printf '  %s-%s Profile           %s\n' "${CYAN}" "${RESET}" "${CLAWSPARK_PROFILE_NAME}"
 
-    # Models
-    if check_command ollama; then
-        local model_count
-        model_count=$(ollama list 2>/dev/null | tail -n +2 | wc -l | tr -d ' ')
-        printf '  %s✓%s Models            %s loaded\n' "${GREEN}" "${RESET}" "${model_count}"
+    local provider
+    provider="$(_current_provider)"
+    printf '  %s-%s Provider          %s\n' "${CYAN}" "${RESET}" "${provider}"
+
+    # Ollama
+    if _uses_local_ollama; then
+        if curl -sf http://127.0.0.1:11434/ &>/dev/null; then
+            printf '  %s✓%s Ollama            running\n' "${GREEN}" "${RESET}"
+        else
+            printf '  %s✗%s Ollama            not running\n' "${RED}" "${RESET}"
+        fi
+
+        # Models
+        if check_command ollama; then
+            local model_count
+            model_count=$(ollama list 2>/dev/null | tail -n +2 | wc -l | tr -d ' ')
+            printf '  %s✓%s Models            %s loaded\n' "${GREEN}" "${RESET}" "${model_count}"
+        else
+            printf '  %s✗%s Models            ollama not found\n' "${RED}" "${RESET}"
+        fi
     else
-        printf '  %s✗%s Models            ollama not found\n' "${RED}" "${RESET}"
+        printf '  %s-%s Ollama            not required for %s\n' "${CYAN}" "${RESET}" "${provider}"
     fi
 
     # OpenClaw
@@ -515,6 +598,11 @@ _skills_install_pack() {
 # ── benchmark ───────────────────────────────────────────────────────────────
 _cmd_benchmark() {
     printf '\n%s%s clawspark benchmark%s\n\n' "${BOLD}" "${BLUE}" "${RESET}"
+
+    if ! _uses_local_ollama; then
+        log_error "Benchmark currently supports local Ollama profiles only."
+        exit 1
+    fi
 
     if ! curl -sf http://127.0.0.1:11434/ &>/dev/null; then
         log_error "Ollama is not running. Start it first: clawspark restart"
@@ -828,30 +916,34 @@ _cmd_restart() {
     local use_systemd
     use_systemd=$(_detect_systemd)
 
-    # Restart Ollama
-    if check_command systemctl && systemctl is-enabled ollama &>/dev/null; then
-        if sudo -n systemctl restart ollama 2>/dev/null; then
-            log_success "Ollama restarted via systemctl."
-        elif curl -sf http://127.0.0.1:11434/ &>/dev/null; then
-            log_info "Ollama already running (systemd-managed, no sudo available)."
+    # Restart Ollama when using local inference
+    if _uses_local_ollama; then
+        if check_command systemctl && systemctl is-enabled ollama &>/dev/null; then
+            if sudo -n systemctl restart ollama 2>/dev/null; then
+                log_success "Ollama restarted via systemctl."
+            elif curl -sf http://127.0.0.1:11434/ &>/dev/null; then
+                log_info "Ollama already running (systemd-managed, no sudo available)."
+            else
+                log_warn "Ollama needs sudo to restart. Run: sudo systemctl restart ollama"
+            fi
+        elif [[ -f "${CLAWSPARK_DIR}/ollama.pid" ]]; then
+            _kill_pid_file "${CLAWSPARK_DIR}/ollama.pid"
+            sleep 1
+            nohup ollama serve >> "${CLAWSPARK_DIR}/ollama.log" 2>&1 &
+            echo $! > "${CLAWSPARK_DIR}/ollama.pid"
+            log_success "Ollama restarted (PID $!)."
         else
-            log_warn "Ollama needs sudo to restart. Run: sudo systemctl restart ollama"
+            nohup ollama serve >> "${CLAWSPARK_DIR}/ollama.log" 2>&1 &
+            echo $! > "${CLAWSPARK_DIR}/ollama.pid"
+            log_success "Ollama started (PID $!)."
         fi
-    elif [[ -f "${CLAWSPARK_DIR}/ollama.pid" ]]; then
-        _kill_pid_file "${CLAWSPARK_DIR}/ollama.pid"
-        sleep 1
-        nohup ollama serve >> "${CLAWSPARK_DIR}/ollama.log" 2>&1 &
-        echo $! > "${CLAWSPARK_DIR}/ollama.pid"
-        log_success "Ollama restarted (PID $!)."
-    else
-        nohup ollama serve >> "${CLAWSPARK_DIR}/ollama.log" 2>&1 &
-        echo $! > "${CLAWSPARK_DIR}/ollama.pid"
-        log_success "Ollama started (PID $!)."
-    fi
 
-    if ! _wait_for_ollama; then
-        log_error "Aborting: Ollama backend is not ready."
-        return 1
+        if ! _wait_for_ollama; then
+            log_error "Aborting: Ollama backend is not ready."
+            return 1
+        fi
+    else
+        log_info "Remote/API provider detected; skipping Ollama restart."
     fi
 
     if [[ "${use_systemd}" == "true" ]]; then
@@ -907,20 +999,24 @@ _cmd_start() {
     local use_systemd
     use_systemd=$(_detect_systemd)
 
-    # Start Ollama
-    if curl -sf http://127.0.0.1:11434/ &>/dev/null; then
-        log_info "Ollama already running."
-    elif check_command systemctl && systemctl is-enabled ollama &>/dev/null; then
-        sudo -n systemctl start ollama 2>/dev/null || log_warn "Ollama needs sudo to start. Run: sudo systemctl start ollama"
-    else
-        nohup ollama serve >> "${CLAWSPARK_DIR}/ollama.log" 2>&1 &
-        echo $! > "${CLAWSPARK_DIR}/ollama.pid"
-        log_success "Ollama started (PID $!)."
-    fi
+    # Start Ollama when required
+    if _uses_local_ollama; then
+        if curl -sf http://127.0.0.1:11434/ &>/dev/null; then
+            log_info "Ollama already running."
+        elif check_command systemctl && systemctl is-enabled ollama &>/dev/null; then
+            sudo -n systemctl start ollama 2>/dev/null || log_warn "Ollama needs sudo to start. Run: sudo systemctl start ollama"
+        else
+            nohup ollama serve >> "${CLAWSPARK_DIR}/ollama.log" 2>&1 &
+            echo $! > "${CLAWSPARK_DIR}/ollama.pid"
+            log_success "Ollama started (PID $!)."
+        fi
 
-    if ! _wait_for_ollama; then
-        log_error "Aborting: Ollama backend is not ready."
-        return 1
+        if ! _wait_for_ollama; then
+            log_error "Aborting: Ollama backend is not ready."
+            return 1
+        fi
+    else
+        log_info "Remote/API provider detected; skipping Ollama startup."
     fi
 
     if [[ "${use_systemd}" == "true" ]]; then
@@ -1011,7 +1107,7 @@ _cmd_stop() {
     fi
 
     # Stop Ollama only with --all flag
-    if ${stop_all}; then
+    if ${stop_all} && _uses_local_ollama; then
         if check_command systemctl && systemctl is-enabled ollama &>/dev/null; then
             sudo -n systemctl stop ollama 2>/dev/null || log_warn "Ollama needs sudo to stop. Run: sudo systemctl stop ollama"
         else
@@ -1019,7 +1115,7 @@ _cmd_stop() {
             log_success "Ollama stopped."
         fi
     else
-        log_info "Ollama left running (shared service). Use --all to also stop Ollama."
+        log_info "Ollama left unchanged. Use --all on local profiles to also stop Ollama."
     fi
 }
 
@@ -1170,8 +1266,11 @@ _model_switch() {
         exit 1
     fi
 
+    local model_id
+    model_id=$(_normalize_model_ref "${model}")
+
     # Check if the model is pulled in Ollama
-    if check_command ollama; then
+    if [[ "${model_id}" == ollama/* ]] && check_command ollama; then
         if ! ollama list 2>/dev/null | grep -qi "^${model}"; then
             log_warn "Model '${model}' does not appear in ollama list."
             log_warn "Pull it first: ollama pull ${model}"
@@ -1180,7 +1279,6 @@ _model_switch() {
     fi
 
     # Update the config
-    local model_id="ollama/${model}"
     python3 -c "
 import json, sys
 
@@ -1237,8 +1335,11 @@ _model_vision_set() {
         exit 1
     fi
 
+    local model_id
+    model_id=$(_normalize_model_ref "${model}")
+
     # Check if the model is pulled
-    if check_command ollama; then
+    if [[ "${model_id}" == ollama/* ]] && check_command ollama; then
         if ! ollama list 2>/dev/null | grep -qi "^${model}"; then
             log_warn "Model '${model}' does not appear in ollama list."
             log_warn "Pull it first: ollama pull ${model}"
@@ -1246,7 +1347,6 @@ _model_vision_set() {
         fi
     fi
 
-    local model_id="ollama/${model}"
     python3 -c "
 import json, sys
 
@@ -1261,20 +1361,21 @@ cfg['agents']['defaults']['imageModel'] = model
 
 # Register inline model with vision capability and openai-completions api
 # so OpenClaw's image analysis path can find the right streaming provider.
-raw_id = model.replace('ollama/', '', 1) if model.startswith('ollama/') else model
-prov = cfg.setdefault('models', {}).setdefault('providers', {}).setdefault('ollama', {})
-prov.setdefault('baseUrl', 'http://127.0.0.1:11434/v1')
-prov['api'] = 'openai-completions'
-prov['models'] = [
-    {
-        'id': raw_id,
-        'name': raw_id.replace(':', ' ').title(),
-        'api': 'openai-completions',
-        'input': ['text', 'image'],
-        'contextWindow': 32768,
-        'maxTokens': 8192
-    }
-]
+if model.startswith('ollama/'):
+    raw_id = model.replace('ollama/', '', 1)
+    prov = cfg.setdefault('models', {}).setdefault('providers', {}).setdefault('ollama', {})
+    prov.setdefault('baseUrl', 'http://127.0.0.1:11434/v1')
+    prov['api'] = 'openai-completions'
+    prov['models'] = [
+        {
+            'id': raw_id,
+            'name': raw_id.replace(':', ' ').title(),
+            'api': 'openai-completions',
+            'input': ['text', 'image'],
+            'contextWindow': 32768,
+            'maxTokens': 8192
+        }
+    ]
 
 with open(path, 'w') as f:
     json.dump(cfg, f, indent=2)

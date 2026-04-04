@@ -211,6 +211,13 @@ bash v2/install.sh --runtime=local-cpu --provider=ollama
 
 v2 state is stored in `~/.clawspark-v2`, while OpenClaw runtime state stays in `~/.openclaw`.
 
+The `clawspark` CLI supports profile selection:
+
+```bash
+CLAWSPARK_PROFILE=v2 clawspark status
+CLAWSPARK_PROFILE=standard clawspark restart
+```
+
 The v2 skill seed file is `v2/configs/skills.yaml`. During install it is copied to `~/.clawspark-v2/skills.yaml` and consumed by the reused legacy skill installer.
 
 For API-backed modes, `~/.openclaw/gateway.env` can contain values such as:

@@ -4,8 +4,8 @@
 set -euo pipefail
 
 # ── Global paths ────────────────────────────────────────────────────────────
-CLAWSPARK_DIR="${HOME}/.clawspark"
-CLAWSPARK_LOG="${CLAWSPARK_DIR}/install.log"
+CLAWSPARK_DIR="${CLAWSPARK_DIR:-${HOME}/.clawspark}"
+CLAWSPARK_LOG="${CLAWSPARK_LOG:-${CLAWSPARK_DIR}/install.log}"
 CLAWSPARK_DEFAULTS="${CLAWSPARK_DEFAULTS:-false}"
 
 # ── Color constants ─────────────────────────────────────────────────────────

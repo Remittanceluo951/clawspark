@@ -9,6 +9,7 @@ setup_v2_extras() {
     _source_legacy_module_v2 "secure.sh"
 
     mkdir -p "${CLAWSPARK_DIR}"
+    _install_v2_cli_assets
     _seed_skills_config_v2
     _prepare_messaging_choice_v2
 
@@ -34,6 +35,25 @@ setup_v2_extras() {
     fi
 
     log_success "v2 extras complete."
+}
+
+_install_v2_cli_assets() {
+    if [[ -f "${CLAWSPARK_REPO_DIR}/clawspark" ]]; then
+        cp "${CLAWSPARK_REPO_DIR}/clawspark" "${CLAWSPARK_DIR}/clawspark"
+        chmod +x "${CLAWSPARK_DIR}/clawspark"
+        sudo cp "${CLAWSPARK_REPO_DIR}/clawspark" /usr/local/bin/clawspark 2>/dev/null || true
+        sudo chmod +x /usr/local/bin/clawspark 2>/dev/null || true
+    fi
+
+    rm -rf "${CLAWSPARK_DIR}/lib" "${CLAWSPARK_DIR}/configs"
+    cp -r "${CLAWSPARK_REPO_DIR}/lib" "${CLAWSPARK_DIR}/"
+    cp -r "${CLAWSPARK_REPO_DIR}/configs" "${CLAWSPARK_DIR}/"
+
+    if [[ -f "${CLAWSPARK_REPO_DIR}/uninstall.sh" ]]; then
+        cp "${CLAWSPARK_REPO_DIR}/uninstall.sh" "${CLAWSPARK_DIR}/uninstall.sh"
+    fi
+
+    log_info "Installed CLI assets into ${CLAWSPARK_DIR}"
 }
 
 _source_legacy_module_v2() {
