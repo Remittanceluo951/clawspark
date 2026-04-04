@@ -14,6 +14,11 @@ Do not represent this repository as approved for commercial deployment,
 third-party consulting, client delivery, or product commercialization unless
 you have explicit written authorization from the copyright holder.
 
+Non-commercial internal use by individuals, companies, and organizations is
+allowed under the repository license. However, any revenue-generating use,
+commercial service delivery, external client work, or other commercial
+exploitation remains prohibited unless separately authorized in writing.
+
 ## Development Workflow
 
 1. create a branch from `main`
