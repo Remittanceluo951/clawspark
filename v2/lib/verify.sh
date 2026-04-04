@@ -61,6 +61,11 @@ verify_v2_installation() {
             google)
                 grep -q '^GOOGLE_API_KEY=' "${env_file}" 2>/dev/null && _check_pass "Google API key configured" || _check_fail "Google API key missing"
                 ;;
+            custom)
+                grep -q '^CUSTOM_AI_API_KEY=' "${env_file}" 2>/dev/null && _check_pass "Custom AI API key configured" || _check_fail "Custom AI API key missing"
+                grep -q '^CUSTOM_AI_BASE_URL=' "${env_file}" 2>/dev/null && _check_pass "Custom AI base URL configured" || _check_fail "Custom AI base URL missing"
+                grep -q '^CUSTOM_AI_PROVIDER_NAME=' "${env_file}" 2>/dev/null && _check_pass "Custom AI label configured" || _check_fail "Custom AI label missing"
+                ;;
         esac
     fi
 

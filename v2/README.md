@@ -27,6 +27,7 @@ Initial providers:
 - `anthropic`
 - `openrouter`
 - `google`
+- `custom` (OpenAI-compatible third-party endpoint)
 
 ## Main files
 
@@ -43,5 +44,7 @@ Initial providers:
 `v2` now reuses the stable legacy modules for skills, voice, messaging, and security hardening.
 
 Runtime state is kept under `~/.clawspark-v2`, while OpenClaw configuration remains under `~/.openclaw`.
+
+For `custom`, provide your own base URL, API key, and model ID. This is intended for OpenAI-compatible vendors, self-hosted gateways, or enterprise AI endpoints.
 
 The root `clawspark` CLI is not yet v2-aware, so `v2` should still be treated as a preview track.

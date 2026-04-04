@@ -38,7 +38,7 @@ select_provider_v2() {
             default_idx=0
             ;;
         api-only|hybrid)
-            provider_options=("openai" "anthropic" "openrouter" "google")
+            provider_options=("openai" "anthropic" "openrouter" "google" "custom")
             default_idx=0
             ;;
         *)
@@ -137,6 +137,29 @@ select_model_v2() {
             )
             default_idx=0
             ;;
+        custom)
+            if [[ -n "${FLAG_MODEL:-}" ]]; then
+                SELECTED_MODEL_ID="${FLAG_MODEL}"
+                SELECTED_MODEL_NAME="${FLAG_MODEL}"
+                export SELECTED_MODEL_ID SELECTED_MODEL_NAME
+                log_success "Selected model: ${SELECTED_MODEL_ID}"
+                return 0
+            fi
+
+            local custom_model_default="custom-model"
+            if [[ "${CLAWSPARK_DEFAULTS}" == "true" ]]; then
+                if [[ -z "${FLAG_MODEL:-}" ]]; then
+                    log_error "Custom provider requires --model when --defaults is used."
+                    return 1
+                fi
+            fi
+
+            SELECTED_MODEL_ID=$(prompt_input "Enter custom model ID" "${custom_model_default}")
+            SELECTED_MODEL_NAME="${SELECTED_MODEL_ID}"
+            export SELECTED_MODEL_ID SELECTED_MODEL_NAME
+            log_success "Selected model: ${SELECTED_MODEL_ID}"
+            return 0
+            ;;
         *)
             model_ids=("qwen2.5:7b-instruct-q4_K_M")
             model_options=("qwen2.5:7b-instruct-q4_K_M - safe default")
@@ -168,31 +191,72 @@ select_model_v2() {
 collect_provider_credentials_v2() {
     API_BASE_URL=""
     API_KEY=""
+    CUSTOM_PROVIDER_NAME=""
     FALLBACK_PROVIDER=""
     FALLBACK_MODEL_ID=""
 
     case "${PRIMARY_PROVIDER}" in
         openai)
             API_KEY=$(prompt_secret "Enter OPENAI_API_KEY")
-            API_BASE_URL=$(prompt_input "OpenAI base URL" "https://api.openai.com/v1")
+            API_BASE_URL=$(prompt_input "OpenAI base URL" "${FLAG_BASE_URL:-https://api.openai.com/v1}")
             ;;
         anthropic)
             API_KEY=$(prompt_secret "Enter ANTHROPIC_API_KEY")
-            API_BASE_URL=$(prompt_input "Anthropic base URL" "https://api.anthropic.com")
+            API_BASE_URL=$(prompt_input "Anthropic base URL" "${FLAG_BASE_URL:-https://api.anthropic.com}")
             ;;
         openrouter)
             API_KEY=$(prompt_secret "Enter OPENROUTER_API_KEY")
-            API_BASE_URL=$(prompt_input "OpenRouter base URL" "https://openrouter.ai/api/v1")
+            API_BASE_URL=$(prompt_input "OpenRouter base URL" "${FLAG_BASE_URL:-https://openrouter.ai/api/v1}")
             ;;
         google)
             API_KEY=$(prompt_secret "Enter GOOGLE_API_KEY")
-            API_BASE_URL=$(prompt_input "Google AI Studio base URL" "https://generativelanguage.googleapis.com/v1beta/openai")
+            API_BASE_URL=$(prompt_input "Google AI Studio base URL" "${FLAG_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai}")
+            ;;
+        custom)
+            CUSTOM_PROVIDER_NAME="${FLAG_PROVIDER_NAME:-}"
+            if [[ -z "${CUSTOM_PROVIDER_NAME}" ]]; then
+                if [[ "${CLAWSPARK_DEFAULTS}" == "true" ]]; then
+                    log_error "Custom provider requires --provider-name when --defaults is used."
+                    return 1
+                fi
+                CUSTOM_PROVIDER_NAME=$(prompt_input "Custom provider label" "Custom AI")
+            fi
+
+            if [[ -n "${FLAG_API_KEY:-}" ]]; then
+                API_KEY="${FLAG_API_KEY}"
+            else
+                API_KEY=$(prompt_secret "Enter custom provider API key")
+            fi
+
+            if [[ -z "${FLAG_BASE_URL:-}" ]]; then
+                if [[ "${CLAWSPARK_DEFAULTS}" == "true" ]]; then
+                    log_error "Custom provider requires --base-url when --defaults is used."
+                    return 1
+                fi
+                API_BASE_URL=$(prompt_input "Custom provider base URL" "https://your-provider.example.com/v1")
+            else
+                API_BASE_URL="${FLAG_BASE_URL}"
+            fi
             ;;
         ollama)
             API_KEY="ollama"
-            API_BASE_URL=$(prompt_input "Ollama base URL" "http://127.0.0.1:11434/v1")
+            API_BASE_URL=$(prompt_input "Ollama base URL" "${FLAG_BASE_URL:-http://127.0.0.1:11434/v1}")
             ;;
     esac
+
+    if [[ "${PRIMARY_PROVIDER}" != "ollama" && -n "${FLAG_API_KEY:-}" ]]; then
+        API_KEY="${FLAG_API_KEY}"
+    fi
+
+    if [[ "${PRIMARY_PROVIDER}" != "ollama" && -z "${API_KEY}" ]]; then
+        log_error "API key is required for provider ${PRIMARY_PROVIDER}."
+        return 1
+    fi
+
+    if [[ -z "${API_BASE_URL}" ]]; then
+        log_error "Base URL is required for provider ${PRIMARY_PROVIDER}."
+        return 1
+    fi
 
     if [[ "${RUNTIME_MODE}" == "hybrid" ]]; then
         if [[ "${PRIMARY_PROVIDER}" == "ollama" ]]; then
@@ -204,6 +268,6 @@ collect_provider_credentials_v2() {
         fi
     fi
 
-    export API_BASE_URL API_KEY FALLBACK_PROVIDER FALLBACK_MODEL_ID
+    export API_BASE_URL API_KEY CUSTOM_PROVIDER_NAME FALLBACK_PROVIDER FALLBACK_MODEL_ID
     log_info "Credential collection finished for ${PRIMARY_PROVIDER}"
 }

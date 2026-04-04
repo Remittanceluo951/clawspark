@@ -74,6 +74,7 @@ _current_provider() {
         ollama/*) printf 'ollama' ;;
         anthropic/*) printf 'anthropic' ;;
         openai/*) printf 'openai' ;;
+        custom/*) printf 'custom' ;;
         *) printf 'ollama' ;;
     esac
 }
@@ -93,6 +94,7 @@ _normalize_model_ref() {
 
     case "${provider}" in
         openrouter|google|openai) printf 'openai/%s' "${model}" ;;
+        custom) printf 'openai/%s' "${model}" ;;
         anthropic) printf 'anthropic/%s' "${model}" ;;
         *) printf 'ollama/%s' "${model}" ;;
     esac
@@ -280,7 +282,11 @@ _cmd_status() {
 
     local provider
     provider="$(_current_provider)"
-    printf '  %s-%s Provider          %s\n' "${CYAN}" "${RESET}" "${provider}"
+    local provider_display="${provider}"
+    if [[ "${provider}" == "custom" && -n "${CUSTOM_AI_PROVIDER_NAME:-}" ]]; then
+        provider_display="custom (${CUSTOM_AI_PROVIDER_NAME})"
+    fi
+    printf '  %s-%s Provider          %s\n' "${CYAN}" "${RESET}" "${provider_display}"
 
     # Ollama
     if _uses_local_ollama; then

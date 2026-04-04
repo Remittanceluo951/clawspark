@@ -45,6 +45,7 @@ Supported provider modes in `v2`:
 - `anthropic`
 - `openrouter`
 - `google`
+- `custom`
 
 `v2` now also reuses the stable installer modules for:
 
@@ -59,6 +60,7 @@ Useful v2 examples:
 bash v2/install.sh --runtime=local-cpu --provider=ollama --messaging=skip
 bash v2/install.sh --runtime=api-only --provider=openai --api-key=<your-key>
 bash v2/install.sh --runtime=hybrid --provider=openrouter --messaging=telegram
+bash v2/install.sh --runtime=api-only --provider=custom --provider-name="My Gateway" --base-url=https://llm.example.com/v1 --api-key=<your-key> --model=my-model
 ```
 
 This does **not** replace the main installer yet. It is a separate v2 track for CPU and external API support.

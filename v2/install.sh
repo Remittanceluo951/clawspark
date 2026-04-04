@@ -7,6 +7,8 @@ CLAWSPARK_DEFAULTS="${CLAWSPARK_DEFAULTS:-false}"
 FLAG_RUNTIME_MODE=""
 FLAG_PROVIDER=""
 FLAG_API_KEY=""
+FLAG_BASE_URL=""
+FLAG_PROVIDER_NAME=""
 FLAG_MODEL=""
 FLAG_MESSAGING=""
 AIR_GAP="false"
@@ -25,6 +27,12 @@ while [[ $# -gt 0 ]]; do
         --api-key=*)
             FLAG_API_KEY="${1#*=}"
             shift ;;
+        --base-url=*)
+            FLAG_BASE_URL="${1#*=}"
+            shift ;;
+        --provider-name=*)
+            FLAG_PROVIDER_NAME="${1#*=}"
+            shift ;;
         --model=*)
             FLAG_MODEL="${1#*=}"
             shift ;;
@@ -41,8 +49,10 @@ Usage: v2/install.sh [OPTIONS]
 Options:
   --defaults              Skip interactive prompts
   --runtime=<mode>        local-gpu | local-cpu | api-only | hybrid
-  --provider=<name>       ollama | openai | anthropic | openrouter | google
+    --provider=<name>       ollama | openai | anthropic | openrouter | google | custom
   --api-key=<key>         Provider API key for API modes
+    --base-url=<url>        Override provider API base URL
+    --provider-name=<name>  Label for custom API provider
   --model=<id>            Override default model ID
     --messaging=<type>      whatsapp | telegram | both | skip
     --air-gap               Enable outbound network lock-down after setup
@@ -57,7 +67,7 @@ done
 
 CLAWSPARK_REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-export CLAWSPARK_DEFAULTS FLAG_RUNTIME_MODE FLAG_PROVIDER FLAG_API_KEY FLAG_MODEL
+export CLAWSPARK_DEFAULTS FLAG_RUNTIME_MODE FLAG_PROVIDER FLAG_API_KEY FLAG_BASE_URL FLAG_PROVIDER_NAME FLAG_MODEL
 export FLAG_MESSAGING AIR_GAP CLAWSPARK_REPO_DIR
 
 source "${SCRIPT_DIR}/lib/common.sh"

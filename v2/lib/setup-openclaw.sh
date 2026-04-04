@@ -102,6 +102,8 @@ def provider_ref(p, m):
         return f'openai/{m}'
     if p == 'google':
         return f'openai/{m}'
+    if p == 'custom':
+        return f'openai/{m}'
     return m
 
 cfg['agents']['defaults']['model'] = provider_ref(provider, model)
@@ -127,6 +129,10 @@ elif provider in ('openai', 'openrouter', 'google'):
     cfg['models']['providers'][provider_key] = {
         'api': 'openai-completions'
     }
+elif provider == 'custom':
+    cfg['models']['providers']['openai'] = {
+        'api': 'openai-completions'
+    }
 elif provider == 'anthropic':
     cfg['models']['providers']['anthropic'] = {
         'api': 'anthropic-messages'
@@ -149,6 +155,7 @@ _provider_model_ref_v2() {
         anthropic) printf 'anthropic/%s' "${model}" ;;
         openrouter) printf 'openai/%s' "${model}" ;;
         google) printf 'openai/%s' "${model}" ;;
+        custom) printf 'openai/%s' "${model}" ;;
         *) printf '%s' "${model}" ;;
     esac
 }

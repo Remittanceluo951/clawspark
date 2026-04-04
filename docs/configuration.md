@@ -181,6 +181,7 @@ Provider catalog:
 - `anthropic`
 - `openrouter`
 - `google`
+- `custom`
 
 Provider metadata lives in `v2/configs/providers.yaml`.
 
@@ -201,6 +202,12 @@ Example API-first install:
 
 ```bash
 bash v2/install.sh --runtime=api-only --provider=openai --api-key=<your-key>
+```
+
+Example custom provider install:
+
+```bash
+bash v2/install.sh --runtime=api-only --provider=custom --provider-name="My Gateway" --base-url=https://llm.example.com/v1 --api-key=<your-key> --model=my-model
 ```
 
 Example CPU-first local install:
@@ -227,6 +234,15 @@ OPENAI_API_KEY=...
 OPENAI_BASE_URL=https://api.openai.com/v1
 CLAWSPARK_V2_RUNTIME_MODE=api-only
 CLAWSPARK_V2_PRIMARY_PROVIDER=openai
+```
+
+For a custom OpenAI-compatible provider, `gateway.env` will instead include:
+
+```bash
+CUSTOM_AI_API_KEY=...
+CUSTOM_AI_BASE_URL=https://llm.example.com/v1
+CUSTOM_AI_PROVIDER_NAME=My Gateway
+CLAWSPARK_V2_PRIMARY_PROVIDER=custom
 ```
 
 Naming note: the framework used by clawspark is **OpenClaw**. `Nemotron` is only one possible model family, not the platform name.

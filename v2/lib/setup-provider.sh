@@ -114,6 +114,11 @@ _write_gateway_env_v2() {
             printf 'GOOGLE_API_KEY=%s\n' "${API_KEY}" >> "${env_file}"
             printf 'GOOGLE_BASE_URL=%s\n' "${API_BASE_URL}" >> "${env_file}"
             ;;
+        custom)
+            printf 'CUSTOM_AI_API_KEY=%s\n' "${API_KEY}" >> "${env_file}"
+            printf 'CUSTOM_AI_BASE_URL=%s\n' "${API_BASE_URL}" >> "${env_file}"
+            printf 'CUSTOM_AI_PROVIDER_NAME=%s\n' "${CUSTOM_PROVIDER_NAME:-Custom AI}" >> "${env_file}"
+            ;;
     esac
 
     if [[ -n "${FALLBACK_PROVIDER:-}" ]]; then
