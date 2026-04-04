@@ -12,6 +12,8 @@
   <a href="https://clawspark.hitechclaw.com">Website</a> &middot;
   <a href="docs/tutorial.md">Tutorial</a> &middot;
   <a href="docs/configuration.md">Configuration</a> &middot;
+  <a href="SECURITY.md">Security</a> &middot;
+  <a href="CONTRIBUTING.md">Contributing Guide</a> &middot;
   <a href="CHANGELOG.md">Changelog</a> &middot;
   <a href="#contributing">Contributing</a>
 </p>
@@ -315,6 +317,20 @@ npm version patch
 git push origin main --follow-tags
 ```
 
+Release helper:
+
+```bash
+npm run release:patch
+npm run release:minor
+npm run release:major
+```
+
+Or run the helper directly:
+
+```bash
+bash scripts/release.sh patch --push
+```
+
 Or manually:
 
 ```bash
@@ -338,6 +354,8 @@ git push origin v2.0.0
 - **[Rohit Ghumare](https://github.com/rohitg00)**
 
 ## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local validation, PR expectations, and release guidelines.
 
 PRs welcome. Areas where help is needed:
 

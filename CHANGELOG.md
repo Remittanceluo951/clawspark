@@ -15,6 +15,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - npm publish hardening with owner validation for the `hitechclaw` account and provenance-enabled releases.
 - Automated GitHub Releases from version tags with attached npm tarballs.
 - Continuous integration workflow for pushes and pull requests covering syntax, package validation, and tests.
+- Repository governance files for security reporting, contribution workflow, and code ownership.
+- Release helper script for validated version bumps and tag creation.
 
 ## [2.0.0] - 2026-04-04
 

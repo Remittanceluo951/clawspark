@@ -1,0 +1,8 @@
+# Default owners
+* @thanhan92-f1
+
+# Release and package automation
+/.github/workflows/ @thanhan92-f1
+/package.json @thanhan92-f1
+/README.md @thanhan92-f1
+/CHANGELOG.md @thanhan92-f1
