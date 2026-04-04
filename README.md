@@ -5,7 +5,22 @@
 <h1 align="center">CLAWSPARK</h1>
 
 <p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-non--commercial%20use-orange" alt="License: Non-Commercial Use Only" /></a>
+  <a href="COMMERCIAL-LICENSE.md"><img src="https://img.shields.io/badge/commercial-use%20requires%20permission-red" alt="Commercial Use Requires Permission" /></a>
+</p>
+
+<p align="center">
   <strong>One command. Private AI agent. Your hardware.</strong>
+</p>
+
+<p align="center">
+  <strong>Usage:</strong> Non-commercial use only for individuals, companies, and organizations.
+  Commercialization, commercial consulting, and revenue-generating use require prior written permission.
+</p>
+
+<p align="center">
+  <strong>Important:</strong> Availability on GitHub or npm does <em>not</em> grant commercial rights.
+  See <a href="LICENSE">LICENSE</a>, <a href="NOTICE">NOTICE</a>, and <a href="COMMERCIAL-LICENSE.md">COMMERCIAL-LICENSE.md</a>.
 </p>
 
 <p align="center">
@@ -27,6 +42,10 @@ curl -fsSL https://clawspark.hitechclaw.com/install.sh | bash
 ```
 
 That's it. Come back in 5 minutes to a fully working, fully private AI agent that can code, research, browse the web, analyze images, and manage your tasks. Everything runs on your hardware. No cloud APIs, no subscriptions, no telemetry.
+
+> **Licensing notice**
+> Publishing or downloading this package from npm does not grant any commercial right.
+> Use is limited to strictly non-commercial purposes unless separately authorized in writing by the copyright holder.
 
 ## v2 Preview
 

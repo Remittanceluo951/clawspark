@@ -1,7 +1,7 @@
 {
   "name": "@hitechclaw/clawspark",
   "version": "2.1.0",
-  "description": "One-command OpenClaw installer and CLI for local, CPU-first, and API-backed AI agent deployments.",
+  "description": "One-command OpenClaw installer and CLI for local, CPU-first, and API-backed AI agent deployments for strictly non-commercial use.",
   "author": "hitechclaw",
   "license": "SEE LICENSE IN LICENSE",
   "homepage": "https://github.com/thanhan92-f1/clawspark#readme",
@@ -20,7 +20,9 @@
     "installer",
     "local-ai",
     "cpu-ai",
-    "api-gateway"
+    "api-gateway",
+    "non-commercial",
+    "source-available"
   ],
   "bin": {
     "clawspark": "clawspark"
