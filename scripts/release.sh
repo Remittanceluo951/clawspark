@@ -29,6 +29,49 @@ require_command() {
     }
 }
 
+resolve_command() {
+    local candidate="$1"
+    local resolved=""
+
+    if resolved="$(command -v "${candidate}" 2>/dev/null)" && [[ -n "${resolved}" ]]; then
+        printf '%s' "${resolved}"
+        return 0
+    fi
+
+    if resolved="$(command -v "${candidate}.exe" 2>/dev/null)" && [[ -n "${resolved}" ]]; then
+        printf '%s' "${resolved}"
+        return 0
+    fi
+
+    if resolved="$(command -v "${candidate}.cmd" 2>/dev/null)" && [[ -n "${resolved}" ]]; then
+        printf '%s' "${resolved}"
+        return 0
+    fi
+
+    if command -v where.exe >/dev/null 2>&1; then
+        resolved="$(where.exe "${candidate}" 2>/dev/null | head -n 1 | tr -d '\r')"
+        if [[ -n "${resolved}" ]]; then
+            printf '%s' "${resolved}"
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+require_runtime_command() {
+    local candidate="$1"
+    local resolved=""
+
+    if resolved="$(resolve_command "${candidate}" 2>/dev/null)" && [[ -n "${resolved}" ]]; then
+        printf '%s' "${resolved}"
+        return 0
+    fi
+
+    echo "Required command not found: ${candidate}" >&2
+    exit 1
+}
+
 bump_arg="${1:-}"
 push_flag="false"
 
@@ -53,30 +96,31 @@ while [[ $# -gt 0 ]]; do
 done
 
 require_command git
-require_command node
-require_command npm
 require_command bash
+
+NODE_BIN="$(require_runtime_command node)"
+NPM_BIN="$(require_runtime_command npm)"
 
 require_clean_git
 
 bash -n ./clawspark
 bash ./tests/run.sh
-npm pack --dry-run >/dev/null
+"${NPM_BIN}" pack --dry-run >/dev/null
 
 case "${bump_arg}" in
     patch|minor|major)
-        npm version "${bump_arg}"
+        "${NPM_BIN}" version "${bump_arg}"
         ;;
     *)
         if [[ ! "${bump_arg}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Version must be patch, minor, major, or an explicit semver like 2.1.0" >&2
             exit 1
         fi
-        npm version "${bump_arg}"
+        "${NPM_BIN}" version "${bump_arg}"
         ;;
 esac
 
-new_version="$(node -p "require('./package.json').version")"
+new_version="$("${NODE_BIN}" -p "require('./package.json').version")"
 echo "Prepared release v${new_version}"
 
 echo "Next steps:"
