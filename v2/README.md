@@ -47,4 +47,4 @@ Runtime state is kept under `~/.clawspark-v2`, while OpenClaw configuration rema
 
 For `custom`, provide your own base URL, API key, and model ID. This is intended for OpenAI-compatible vendors, self-hosted gateways, or enterprise AI endpoints.
 
-The root `clawspark` CLI is not yet v2-aware, so `v2` should still be treated as a preview track.
+The root `clawspark` CLI is now v2-aware for profile detection, provider-aware status, and remote/custom model inspection. `v2` should still be treated as a preview track while broader command coverage continues to improve.

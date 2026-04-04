@@ -245,4 +245,8 @@ CUSTOM_AI_PROVIDER_NAME=My Gateway
 CLAWSPARK_V2_PRIMARY_PROVIDER=custom
 ```
 
+Internally, OpenClaw model refs for `custom`, `openrouter`, and `google` are stored with the `openai/` prefix because they use an OpenAI-compatible API path. The original selected provider is still tracked in `clawsparkV2.primaryProvider` and surfaced by the `clawspark` CLI.
+
+For API-backed profiles, `clawspark status` performs a lightweight connectivity probe against the configured base URL. Set `CLAWSPARK_SKIP_REMOTE_HEALTHCHECK=true` if you need to suppress that check in restricted environments or tests.
+
 Naming note: the framework used by clawspark is **OpenClaw**. `Nemotron` is only one possible model family, not the platform name.

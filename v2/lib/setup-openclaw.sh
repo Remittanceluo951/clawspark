@@ -79,9 +79,9 @@ _write_openclaw_config_v2() {
     default_model_ref=$(_provider_model_ref_v2 "${PRIMARY_PROVIDER}" "${SELECTED_MODEL_ID}")
     openclaw config set agents.defaults.model "${default_model_ref}" >> "${CLAWSPARK_V2_LOG}" 2>&1 || true
 
-    python3 - "${config_file}" "${PRIMARY_PROVIDER}" "${SELECTED_MODEL_ID}" "${RUNTIME_MODE}" "${FALLBACK_PROVIDER:-}" "${FALLBACK_MODEL_ID:-}" <<'PY'
+    python3 - "${config_file}" "${PRIMARY_PROVIDER}" "${SELECTED_MODEL_ID}" "${RUNTIME_MODE}" "${FALLBACK_PROVIDER:-}" "${FALLBACK_MODEL_ID:-}" "${CUSTOM_PROVIDER_NAME:-}" <<'PY'
 import json, sys
-path, provider, model, runtime_mode, fallback_provider, fallback_model = sys.argv[1:7]
+path, provider, model, runtime_mode, fallback_provider, fallback_model, custom_provider_name = sys.argv[1:8]
 with open(path, 'r', encoding='utf-8') as fh:
     cfg = json.load(fh)
 
@@ -115,6 +115,8 @@ cfg['clawsparkV2'] = {
 if fallback_provider and fallback_model:
     cfg['clawsparkV2']['fallbackProvider'] = fallback_provider
     cfg['clawsparkV2']['fallbackModel'] = fallback_model
+if provider == 'custom' and custom_provider_name:
+    cfg['clawsparkV2']['customProviderName'] = custom_provider_name
 
 cfg.setdefault('models', {})
 cfg['models'].setdefault('providers', {})

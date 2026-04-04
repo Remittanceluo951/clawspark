@@ -73,6 +73,9 @@ CLAWSPARK_PROFILE=v2 clawspark status
 CLAWSPARK_PROFILE=standard clawspark status
 ```
 
+For remote and custom providers, `clawspark model list` now shows the active provider context and configured API endpoint instead of only local Ollama inventory.
+`clawspark status` also performs a lightweight remote endpoint probe for API-backed profiles.
+
 ## What is this?
 
 [OpenClaw](https://github.com/openclaw/openclaw) is the most popular open-source AI agent (340K+ stars). **clawspark** gets it running on your NVIDIA hardware in one command. Fully local. Fully private. Your data never leaves your machine.
