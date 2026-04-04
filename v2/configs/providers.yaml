@@ -1,0 +1,66 @@
+providers:
+  ollama:
+    type: local
+    runtime_modes:
+      - local-gpu
+      - local-cpu
+      - hybrid
+    default_base_url: http://127.0.0.1:11434/v1
+    env:
+      api_key: OLLAMA_API_KEY
+      base_url: OLLAMA_BASE_URL
+    cpu_models:
+      - qwen2.5:14b-instruct-q4_K_M
+      - qwen2.5:7b-instruct-q4_K_M
+      - llama3.1:8b-instruct-q4_K_M
+      - phi4-mini
+  openai:
+    type: api
+    runtime_modes:
+      - api-only
+      - hybrid
+    default_base_url: https://api.openai.com/v1
+    env:
+      api_key: OPENAI_API_KEY
+      base_url: OPENAI_BASE_URL
+    models:
+      - gpt-4.1
+      - gpt-4.1-mini
+      - gpt-5-mini
+  anthropic:
+    type: api
+    runtime_modes:
+      - api-only
+      - hybrid
+    default_base_url: https://api.anthropic.com
+    env:
+      api_key: ANTHROPIC_API_KEY
+      base_url: ANTHROPIC_BASE_URL
+    models:
+      - claude-sonnet-4-20250514
+      - claude-3-5-haiku-latest
+  openrouter:
+    type: api
+    runtime_modes:
+      - api-only
+      - hybrid
+    default_base_url: https://openrouter.ai/api/v1
+    env:
+      api_key: OPENROUTER_API_KEY
+      base_url: OPENROUTER_BASE_URL
+    models:
+      - openai/gpt-4.1-mini
+      - anthropic/claude-3.5-haiku
+      - google/gemini-2.0-flash-001
+  google:
+    type: api
+    runtime_modes:
+      - api-only
+      - hybrid
+    default_base_url: https://generativelanguage.googleapis.com/v1beta/openai
+    env:
+      api_key: GOOGLE_API_KEY
+      base_url: GOOGLE_BASE_URL
+    models:
+      - gemini-2.0-flash
+      - gemini-1.5-pro

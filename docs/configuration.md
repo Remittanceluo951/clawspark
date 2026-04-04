@@ -160,3 +160,46 @@ openclaw agents add cloud-agent --model anthropic/claude-sonnet-4-20250514
 ```
 
 **Important:** When cloud providers are configured, data sent to those agents will leave your machine and go to the cloud provider's servers. Your default local agent remains fully private. This is a deliberate tradeoff between privacy and capability. Only enable this if you understand and accept it.
+
+## v2 Runtime Modes
+
+Location: `v2/`
+
+The `v2` installer adds a provider-aware setup path for CPU-only and API-backed deployments.
+
+Runtime modes:
+
+- `local-gpu` -- Ollama on GPU-capable hosts
+- `local-cpu` -- Ollama on CPU-first hosts
+- `api-only` -- third-party API provider only
+- `hybrid` -- local + remote fallback
+
+Provider catalog:
+
+- `ollama`
+- `openai`
+- `anthropic`
+- `openrouter`
+- `google`
+
+Provider metadata lives in `v2/configs/providers.yaml`.
+
+Run the v2 installer:
+
+```bash
+bash v2/install.sh
+```
+
+Example API-first install:
+
+```bash
+bash v2/install.sh --runtime=api-only --provider=openai --api-key=<your-key>
+```
+
+Example CPU-first local install:
+
+```bash
+bash v2/install.sh --runtime=local-cpu --provider=ollama
+```
+
+Naming note: the framework used by clawspark is **OpenClaw**. `Nemotron` is only one possible model family, not the platform name.

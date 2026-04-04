@@ -24,9 +24,35 @@ curl -fsSL https://clawspark.hitechclaw.com/install.sh | bash
 
 That's it. Come back in 5 minutes to a fully working, fully private AI agent that can code, research, browse the web, analyze images, and manage your tasks. Everything runs on your hardware. No cloud APIs, no subscriptions, no telemetry.
 
+## v2 Preview
+
+A new installer track is available in `v2/` for broader deployment targets:
+
+- **CPU-first** installs for machines without GPUs
+- **API-first** installs using third-party providers
+- **Hybrid** installs that combine local and remote inference
+
+Run it with:
+
+```bash
+bash v2/install.sh
+```
+
+Supported provider modes in `v2`:
+
+- `ollama`
+- `openai`
+- `anthropic`
+- `openrouter`
+- `google`
+
+This does **not** replace the main installer yet. It is a separate v2 track for CPU and external API support.
+
 ## What is this?
 
 [OpenClaw](https://github.com/openclaw/openclaw) is the most popular open-source AI agent (340K+ stars). **clawspark** gets it running on your NVIDIA hardware in one command. Fully local. Fully private. Your data never leaves your machine.
+
+`clawspark` is built around **OpenClaw**. It is **not** "nemoclaw". `Nemotron` appears in this repository only as a **model option** on some hardware profiles, not as the agent framework name.
 
 **What happens when you run it:**
 
