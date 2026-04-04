@@ -280,7 +280,9 @@ bash tests/run.sh
 ## npm Package
 
 [![npm version](https://img.shields.io/npm/v/clawspark.svg)](https://www.npmjs.com/package/clawspark)
+[![CI](https://github.com/thanhan92-f1/clawspark/actions/workflows/ci.yml/badge.svg)](https://github.com/thanhan92-f1/clawspark/actions/workflows/ci.yml)
 [![Publish to npm](https://github.com/thanhan92-f1/clawspark/actions/workflows/publish-npm.yml/badge.svg)](https://github.com/thanhan92-f1/clawspark/actions/workflows/publish-npm.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/thanhan92-f1/clawspark)](https://github.com/thanhan92-f1/clawspark/releases)
 
 `clawspark` can also be distributed as an npm package for installing the CLI entrypoint:
 
@@ -295,6 +297,7 @@ npm run pack:check
 ```
 
 Public publishing is automated through `.github/workflows/publish-npm.yml` and expects an `NPM_TOKEN` repository secret.
+Regular validation for pushes and pull requests runs through `.github/workflows/ci.yml`.
 
 Example setup:
 
