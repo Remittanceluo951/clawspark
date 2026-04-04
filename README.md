@@ -226,6 +226,7 @@ clawspark model vision <model>      # Set vision model
 - UFW firewall (deny incoming by default)
 - 256-bit auth token for the gateway API
 - Gateway binds to localhost only
+- Control UI `allowedOrigins` defaults to `[*]` during install for reverse-proxy/browser compatibility
 - Code-level tool restrictions (21 blocked command patterns)
 - SOUL.md + TOOLS.md with immutable guardrails
 - Plugin approval hooks (user confirmation before acting)
@@ -270,6 +271,8 @@ clawspark diagnose            System diagnostics
 clawspark logs                Tail gateway logs
 clawspark uninstall           Remove everything
 ```
+
+`clawspark update` also migrates older installs so OpenClaw Control UI uses `allowedOrigins=["*"]` for reverse-proxy compatibility.
 
 ## Dashboard
 

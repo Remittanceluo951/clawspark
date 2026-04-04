@@ -85,6 +85,32 @@ print(json.dumps(origins))
 PY
 }
 
+_allowed_origins_allow_all() {
+    local existing=""
+    existing=$(openclaw config get gateway.controlUi.allowedOrigins 2>/dev/null || echo "")
+
+    python3 - "$existing" <<'PY'
+import json
+import sys
+
+raw = sys.argv[1].strip()
+
+if raw and raw not in {"null", "unknown", "undefined"}:
+    try:
+        parsed = json.loads(raw)
+    except Exception:
+        parsed = raw.strip().strip('"').strip("'")
+    if isinstance(parsed, list) and '*' in [str(item).strip() for item in parsed]:
+        print('true')
+        raise SystemExit(0)
+    if isinstance(parsed, str) and parsed.strip() == '*':
+        print('true')
+        raise SystemExit(0)
+
+print('false')
+PY
+}
+
 setup_tailscale() {
     log_info "Tailscale setup (optional)..."
     hr
@@ -205,6 +231,9 @@ print(dns_name.rstrip('.'))
     # Without this, the Control UI rejects WebSocket connections from the
     # Tailscale HTTPS URL with "origin not allowed".
     local ts_url="https://${ts_fqdn}"
+    if [[ "$(_allowed_origins_allow_all)" == "true" ]]; then
+        log_info "Control UI allowedOrigins already permits all origins; skipping Tailscale origin update."
+    else
     log_info "Adding ${ts_url} to gateway allowedOrigins..."
     local merged_allowed_origins=""
     merged_allowed_origins=$(_merge_allowed_origin "${ts_url}")
@@ -237,6 +266,7 @@ print(dns_name.rstrip('.'))
                 log_warn "Gateway restart failed. Run: clawspark restart"
             fi
         fi
+    fi
     fi
 
     # Save the URL for the final install message

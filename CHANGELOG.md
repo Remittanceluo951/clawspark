@@ -7,6 +7,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Changed
+- Installer now configures OpenClaw Control UI with `allowedOrigins=["*"]` by default for Caddy, Tailscale, and other reverse proxies.
+- `clawspark update` now migrates existing installations to the wildcard Control UI origin policy.
+- Tailscale setup now preserves wildcard Control UI origin settings instead of replacing them with a single remote origin.
+
 ### Added
 - Changelog tracking for future releases.
 - Custom non-commercial-use license allowing individuals and organizations to

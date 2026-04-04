@@ -73,6 +73,7 @@ setup_openclaw() {
     # Re-apply our config values (onboard may overwrite some)
     openclaw config set agents.defaults.model "ollama/${SELECTED_MODEL_ID}" >> "${CLAWSPARK_LOG}" 2>&1 || true
     openclaw config set agents.defaults.memorySearch.enabled false >> "${CLAWSPARK_LOG}" 2>&1 || true
+    openclaw config set gateway.controlUi.allowedOrigins '["*"]' >> "${CLAWSPARK_LOG}" 2>&1 || true
     openclaw config set tools.profile full >> "${CLAWSPARK_LOG}" 2>&1 || true
 
     # Sync .gateway-token with the actual token in config (onboard may have changed it)
@@ -121,6 +122,34 @@ print(c.get('gateway',{}).get('auth',{}).get('token',''))
     _write_workspace_files
 
     log_success "OpenClaw setup complete."
+}
+
+ensure_openclaw_allowed_origins() {
+    if ! check_command openclaw; then
+        return 0
+    fi
+
+    openclaw config set gateway.controlUi.allowedOrigins '["*"]' >> "${CLAWSPARK_LOG}" 2>&1 || true
+
+    local config_file="${HOME}/.openclaw/openclaw.json"
+    if [[ -f "${config_file}" ]]; then
+        python3 - "${config_file}" <<'PY' >> "${CLAWSPARK_LOG}" 2>&1 || true
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, 'r', encoding='utf-8') as fh:
+    cfg = json.load(fh)
+
+cfg.setdefault('gateway', {})
+cfg['gateway'].setdefault('controlUi', {})
+cfg['gateway']['controlUi']['allowedOrigins'] = ['*']
+
+with open(path, 'w', encoding='utf-8') as fh:
+    json.dump(cfg, fh, indent=2)
+    fh.write('\n')
+PY
+    fi
 }
 
 # ── Internal helpers ────────────────────────────────────────────────────────
@@ -195,6 +224,7 @@ _write_openclaw_config() {
     openclaw config set gateway.mode local >> "${CLAWSPARK_LOG}" 2>&1 || true
     openclaw config set gateway.port 18789 >> "${CLAWSPARK_LOG}" 2>&1 || true
     openclaw config set gateway.auth.token "${auth_token}" >> "${CLAWSPARK_LOG}" 2>&1 || true
+    openclaw config set gateway.controlUi.allowedOrigins '["*"]' >> "${CLAWSPARK_LOG}" 2>&1 || true
     openclaw config set agents.defaults.model "ollama/${SELECTED_MODEL_ID}" >> "${CLAWSPARK_LOG}" 2>&1 || true
     openclaw config set agents.defaults.memorySearch.enabled false >> "${CLAWSPARK_LOG}" 2>&1 || true
     openclaw config set tools.profile full >> "${CLAWSPARK_LOG}" 2>&1 || true
@@ -260,6 +290,11 @@ with open(path, 'r') as f:
 cfg.setdefault('tools', {})
 cfg['tools']['profile'] = 'full'
 
+# Allow Control UI access from any browser/reverse proxy origin.
+cfg.setdefault('gateway', {})
+cfg['gateway'].setdefault('controlUi', {})
+cfg['gateway']['controlUi']['allowedOrigins'] = ['*']
+
 # Group safety: require @mention to activate in groups, disabled by default
 cfg.setdefault('channels', {})
 cfg['channels'].setdefault('whatsapp', {})
@@ -298,7 +333,7 @@ print('ok')
         return 0
     }
 
-    log_success "Agent configured: full tools (DM), SOUL.md-gated (groups), sub-agents enabled"
+    log_success "Agent configured: full tools (DM), allow-all Control UI origins, SOUL.md-gated (groups), sub-agents enabled"
 }
 
 _find_openclaw_dir() {

@@ -1532,6 +1532,7 @@ _cmd_update() {
         _patch_sync_full_history
         _patch_baileys_browser
         _patch_mention_detection
+        ensure_openclaw_allowed_origins
         _setup_agent_config
     else
         log_warn "lib/setup-openclaw.sh not found -- patches not re-applied."
