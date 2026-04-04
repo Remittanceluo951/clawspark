@@ -12,6 +12,7 @@
   <a href="https://clawspark.hitechclaw.com">Website</a> &middot;
   <a href="docs/tutorial.md">Tutorial</a> &middot;
   <a href="docs/configuration.md">Configuration</a> &middot;
+  <a href="CHANGELOG.md">Changelog</a> &middot;
   <a href="#contributing">Contributing</a>
 </p>
 
