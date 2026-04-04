@@ -20,7 +20,13 @@ PROJECT_ROOT="$(_find_project_root)"
 
 # Cross-platform stat permission helper (macOS vs Linux)
 _get_permissions() {
-    stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1" 2>/dev/null || echo "unknown"
+  if stat -c '%a' "$1" >/dev/null 2>&1; then
+    stat -c '%a' "$1" 2>/dev/null
+  elif stat -f '%Lp' "$1" >/dev/null 2>&1; then
+    stat -f '%Lp' "$1" 2>/dev/null
+  else
+    echo "unknown"
+  fi
 }
 
 setup() {
