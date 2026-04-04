@@ -41,6 +41,9 @@ jobs:
       - name: Validate CLI syntax
         run: bash -n ./clawspark
 
+      - name: Run test suite
+        run: bash ./tests/run.sh
+
       - name: Validate npm package contents
         run: npm pack --dry-run
 

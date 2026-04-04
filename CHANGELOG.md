@@ -13,6 +13,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - GitHub Actions workflow for publishing public npm releases from version tags.
 - Release validation that checks tag/version alignment before npm publish.
 - npm publish hardening with owner validation for the `hitechclaw` account and provenance-enabled releases.
+- Automated GitHub Releases from version tags with attached npm tarballs.
 
 ## [2.0.0] - 2026-04-04
 

@@ -280,6 +280,7 @@ bash tests/run.sh
 ## npm Package
 
 [![npm version](https://img.shields.io/npm/v/clawspark.svg)](https://www.npmjs.com/package/clawspark)
+[![Publish to npm](https://github.com/thanhan92-f1/clawspark/actions/workflows/publish-npm.yml/badge.svg)](https://github.com/thanhan92-f1/clawspark/actions/workflows/publish-npm.yml)
 
 `clawspark` can also be distributed as an npm package for installing the CLI entrypoint:
 
@@ -302,6 +303,7 @@ Example setup:
 3. Make sure the tag matches `package.json` version exactly, for example `v2.0.0` for version `2.0.0`.
 4. Push the tag.
 5. GitHub Actions validates metadata, checks the packed tarball, verifies the npm account, and publishes `clawspark` to npmjs.com with provenance.
+6. GitHub Actions also creates a GitHub Release and attaches the generated npm tarball.
 
 Example release flow:
 
