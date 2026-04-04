@@ -368,31 +368,36 @@ PRs welcome. Areas where help is needed:
 
 ## License
 
-Personal-use only. Commercial use, consulting, business use, and other
-for-profit use are prohibited unless you have prior written permission from
-the copyright holder. Exclusive commercialization rights are reserved to the
-repository owner/copyright holder.
+Non-commercial use only. Individuals, companies, and organizations may use
+this repository only for strictly non-commercial purposes. Commercial use,
+commercial consulting, and other for-profit use are prohibited unless you
+have prior written permission from the copyright holder. Exclusive
+commercialization rights are reserved to the repository owner/copyright
+holder.
 
 Allowed without separate permission:
 
 - personal use
 - private use
+- internal company use for strictly non-commercial purposes
+- internal organizational use for strictly non-commercial purposes
 - educational use
 - non-commercial research use
+- non-commercial evaluation and testing
 
 Not allowed without prior written permission:
 
 - product commercialization of this repository or derivative offerings
-- business or company use
-- consulting or implementation services
+- commercial consulting or implementation services
 - third-party service delivery or client work
-- internal use inside a commercial organization
 - paid support, training, integration, or managed services
 - resale, sublicensing, hosting, SaaS, bundling, or monetization
 
-`Personal use` means use by an individual for their own private,
-non-commercial purposes only. Use for an employer, client, company,
-organization, or other third party is not personal use.
+`Non-commercial use` means use that is not related to revenue generation,
+commercial advantage, product commercialization, paid delivery, or service to
+clients or third parties. A company or organization may use the project only
+for strictly non-commercial internal purposes such as research, education,
+testing, or evaluation.
 
 Only the repository owner / copyright holder may commercialize this project
 or grant commercial licenses.

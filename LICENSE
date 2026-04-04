@@ -1,4 +1,4 @@
-Pho Tue SoftWare Solutions Personal Use License v1.0
+Pho Tue SoftWare Solutions Non-Commercial Use License v1.0
 
 Copyright (c) 2026 Nguyen Thanh An by Pho Tue SoftWare Solutions JSC
 
@@ -11,10 +11,12 @@ documentation, website assets, and related materials (collectively, the
 Subject to the terms of this license, you are granted a limited, revocable,
 non-exclusive, non-transferable, non-sublicensable license to:
 
-- use, copy, modify, and run the Software for personal, private,
-	educational, research, or other strictly non-commercial purposes; and
-- create derivative works for your own personal, private, educational, or
-	research use only.
+- use, copy, modify, and run the Software by an individual, company,
+	organization, institution, or other legal entity solely for private,
+	internal, educational, research, evaluation, or other strictly
+	non-commercial purposes; and
+- create derivative works solely for private, internal, educational,
+	research, evaluation, or other strictly non-commercial use.
 
 2. Commercial Use Is Prohibited
 
@@ -24,8 +26,6 @@ You may not, without prior written permission from the copyright holder:
 	the Software;
 - commercialize the Software, in whole or in part, whether directly or
 	indirectly;
-- use the Software in or for any business, company, enterprise, agency,
-	organization, startup, or other commercial operation;
 - use the Software to provide consulting, integration, implementation,
 	managed services, outsourcing, support services, training services, or any
 	other service to clients or third parties;
@@ -38,8 +38,10 @@ You may not, without prior written permission from the copyright holder:
 	subscription service, marketplace listing, or hosted platform; or
 - authorize any third party to do any of the above.
 
-For clarity, third-party commercialization, consulting for third parties,
-business use, organizational use, and all other commercial use are forbidden.
+For clarity, use by individuals and organizations is permitted only when the
+use is strictly non-commercial. Third-party commercialization, consulting for
+third parties, revenue-generating use, client service delivery, and all other
+commercial use are forbidden.
 
 3. Exclusive Commercial Rights Reservation
 
@@ -55,13 +57,13 @@ purposes, you must:
 
 - include this license and the copyright notice in all copies or substantial
 	portions of the Software; and
-- clearly state that the Software is licensed for personal and non-commercial
-	use only.
+- clearly state that the Software is licensed for non-commercial use only.
 
-Personal use means use by a natural person for that person's own private,
-non-commercial purposes only. Personal use does not include use on behalf of
-any company, client, employer, institution, organization, or other third
-party.
+Non-commercial use means use that is not intended for and does not result in
+commercial advantage, revenue generation, paid service delivery, product
+commercialization, client work, or other commercial exploitation. A company or
+organization may use the Software only for strictly non-commercial internal,
+educational, research, testing, or evaluation purposes.
 
 5. Termination
 

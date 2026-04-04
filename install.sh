@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# License: personal-use only. Commercialization, third-party consulting,
-# client work, and other commercial use are prohibited without prior written
-# permission from Nguyen Thanh An by Pho Tue SoftWare Solutions JSC. See
-# LICENSE and NOTICE.
+# License: non-commercial use only. Individuals and organizations may use
+# this software only for strictly non-commercial purposes. Commercialization,
+# third-party consulting, client work, and other commercial use are
+# prohibited without prior written permission from Nguyen Thanh An by Pho Tue
+# SoftWare Solutions JSC. See LICENSE and NOTICE.
 # install.sh — clawspark one-click installer.
 # Sets up OpenClaw with a local LLM on NVIDIA DGX Spark, Jetson, or RTX hardware.
 #

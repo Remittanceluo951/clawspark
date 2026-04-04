@@ -4,16 +4,17 @@ Copyright (c) 2026 Nguyen Thanh An by Pho Tue SoftWare Solutions JSC
 This repository is source-available under the terms in `LICENSE`.
 
 Summary:
-- Personal, private, educational, and research use is permitted.
+- Non-commercial use by individuals, companies, and organizations is
+  permitted.
 - Commercial use is prohibited without prior written permission.
 - Commercialization of the product or any derivative offering is prohibited
   without prior written permission.
-- Consulting, client services, business use, organizational use, hosting,
-  resale, sublicensing, and monetization are prohibited unless separately
-  authorized in writing.
-- Third-party use on behalf of a client, employer, company, or other
-  organization is not personal use and is prohibited unless separately
-  authorized in writing.
+- Consulting, client services, paid implementation, hosting, resale,
+  sublicensing, and monetization are prohibited unless separately authorized
+  in writing.
+- Internal non-commercial use such as research, evaluation, testing,
+  education, and private experimentation is allowed, including within a
+  company or organization.
 - Exclusive commercial rights are reserved to the repository owner/
   copyright holder.
 
